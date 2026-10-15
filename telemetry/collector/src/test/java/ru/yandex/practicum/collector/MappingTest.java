@@ -9,7 +9,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import ru.yandex.practicum.collector.dto.*;
-import ru.yandex.practicum.collector.kafka.AvroSerializer;
+import ru.yandex.practicum.kafka.telemetry.serialization.AvroSerializer;
 import ru.yandex.practicum.collector.mapping.*;
 import ru.yandex.practicum.kafka.telemetry.event.*;
 import static org.assertj.core.api.Assertions.*;

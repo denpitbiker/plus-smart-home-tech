@@ -1,4 +1,4 @@
-package ru.yandex.practicum.collector.config;
+package ru.yandex.practicum.kafka.telemetry.serialization.json;
 
 import java.io.IOException;
 import java.time.Instant;

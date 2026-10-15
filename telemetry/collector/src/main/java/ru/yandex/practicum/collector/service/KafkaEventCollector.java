@@ -12,7 +12,7 @@ import ru.yandex.practicum.collector.dto.*;
 import ru.yandex.practicum.collector.kafka.PublicationException;
 import ru.yandex.practicum.collector.mapping.*;
 @Service
-public class KafkaEventCollector implements EventCollector {
+public class KafkaEventCollector implements EventCollector, AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(KafkaEventCollector.class);
     private final Producer<String, SpecificRecord> producer;
     private final KafkaSettings settings;
@@ -48,5 +48,14 @@ public class KafkaEventCollector implements EventCollector {
     private void fail(CompletableFuture<Void> result, String hub, String type, Exception error) {
         log.error("Publication failed: hub={}, type={}", hub, type, error);
         result.completeExceptionally(error instanceof SerializationException ? error : new PublicationException(error));
+    }
+
+    @Override
+    public void close() {
+        try {
+            producer.flush();
+        } finally {
+            producer.close(settings.closeTimeout());
+        }
     }
 }

@@ -20,6 +20,7 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.assertj.core.api.Assertions.*;
+@org.junit.jupiter.api.extension.ExtendWith(org.springframework.boot.test.system.OutputCaptureExtension.class)
 @WebMvcTest(EventController.class)
 @Import(JsonConfiguration.class)
 class EventControllerTest {
@@ -69,12 +70,13 @@ class EventControllerTest {
         verifyNoInteractions(collector);
     }
 
-    @Test void serializationFailureReturns500() throws Exception {
+    @Test void serializationFailureReturns500(org.springframework.boot.test.system.CapturedOutput output) throws Exception {
         when(collector.collect(any(SensorEvent.class))).thenReturn(CompletableFuture.failedFuture(
                 new org.apache.kafka.common.errors.SerializationException("encoding failed")));
         var result = mvc.perform(post("/events/sensors").contentType("application/json")
                 .content(EventFixtures.events().get(3).json())).andReturn();
         mvc.perform(asyncDispatch(result)).andExpect(status().isInternalServerError());
+        assertThat(output.getOut()).contains("Unable to serialize event; returning HTTP 500", "encoding failed");
     }
 
     @Test void defaultsTimestampAndLightValues() throws Exception {
@@ -90,7 +92,7 @@ class EventControllerTest {
         assertThat(event.linkQuality).isZero(); assertThat(event.luminosity).isZero();
     }
 
-    @Test void waitsForAcknowledgementAndReturns503OnFailure() throws Exception {
+    @Test void waitsForAcknowledgementAndReturns503OnFailure(org.springframework.boot.test.system.CapturedOutput output) throws Exception {
         var pending = new CompletableFuture<Void>();
         when(collector.collect(any(SensorEvent.class))).thenReturn(pending);
         var result = mvc.perform(post("/events/sensors").contentType("application/json")
@@ -98,5 +100,6 @@ class EventControllerTest {
         assertThat(pending).isNotDone();
         pending.completeExceptionally(new PublicationException(new RuntimeException("broker unavailable")));
         mvc.perform(asyncDispatch(result)).andExpect(status().isServiceUnavailable());
+        assertThat(output.getOut()).contains("Unable to publish event to Kafka; returning HTTP 503", "broker unavailable");
     }
 }

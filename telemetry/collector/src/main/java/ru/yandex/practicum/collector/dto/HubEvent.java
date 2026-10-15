@@ -3,7 +3,7 @@ import com.fasterxml.jackson.annotation.*;
 import jakarta.validation.constraints.*;
 import java.time.Instant;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import ru.yandex.practicum.collector.config.StrictInstantDeserializer;
+import ru.yandex.practicum.kafka.telemetry.serialization.json.StrictInstantDeserializer;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "type")
 @JsonSubTypes({
     @JsonSubTypes.Type(value = DeviceAddedEvent.class, name = "DEVICE_ADDED"),
