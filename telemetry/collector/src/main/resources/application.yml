@@ -1,0 +1,11 @@
+server:
+  port: ${SERVER_PORT:8080}
+spring:
+  mvc:
+    async:
+      request-timeout: 40s
+collector:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    sensors-topic: telemetry.sensors.v1
+    hubs-topic: telemetry.hubs.v1
