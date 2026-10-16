@@ -1,0 +1,296 @@
+name: "telemetry/messages/hub_event.proto"
+package: "telemetry.message.event"
+dependency: "google/protobuf/timestamp.proto"
+message_type {
+  name: "HubEventProto"
+  field {
+    name: "hub_id"
+    number: 1
+    label: LABEL_OPTIONAL
+    type: TYPE_STRING
+  }
+  field {
+    name: "timestamp"
+    number: 2
+    label: LABEL_OPTIONAL
+    type: TYPE_MESSAGE
+    type_name: ".google.protobuf.Timestamp"
+  }
+  field {
+    name: "device_added"
+    number: 3
+    label: LABEL_OPTIONAL
+    type: TYPE_MESSAGE
+    type_name: ".telemetry.message.event.DeviceAddedEventProto"
+    oneof_index: 0
+  }
+  field {
+    name: "device_removed"
+    number: 4
+    label: LABEL_OPTIONAL
+    type: TYPE_MESSAGE
+    type_name: ".telemetry.message.event.DeviceRemovedEventProto"
+    oneof_index: 0
+  }
+  field {
+    name: "scenario_added"
+    number: 5
+    label: LABEL_OPTIONAL
+    type: TYPE_MESSAGE
+    type_name: ".telemetry.message.event.ScenarioAddedEventProto"
+    oneof_index: 0
+  }
+  field {
+    name: "scenario_removed"
+    number: 6
+    label: LABEL_OPTIONAL
+    type: TYPE_MESSAGE
+    type_name: ".telemetry.message.event.ScenarioRemovedEventProto"
+    oneof_index: 0
+  }
+  oneof_decl {
+    name: "payload"
+  }
+}
+message_type {
+  name: "DeviceAddedEventProto"
+  field {
+    name: "id"
+    number: 1
+    label: LABEL_OPTIONAL
+    type: TYPE_STRING
+  }
+  field {
+    name: "type"
+    number: 2
+    label: LABEL_OPTIONAL
+    type: TYPE_ENUM
+    type_name: ".telemetry.message.event.DeviceTypeProto"
+  }
+}
+message_type {
+  name: "DeviceRemovedEventProto"
+  field {
+    name: "id"
+    number: 1
+    label: LABEL_OPTIONAL
+    type: TYPE_STRING
+  }
+}
+message_type {
+  name: "ScenarioConditionProto"
+  field {
+    name: "sensor_id"
+    number: 1
+    label: LABEL_OPTIONAL
+    type: TYPE_STRING
+  }
+  field {
+    name: "type"
+    number: 2
+    label: LABEL_OPTIONAL
+    type: TYPE_ENUM
+    type_name: ".telemetry.message.event.ConditionTypeProto"
+  }
+  field {
+    name: "operation"
+    number: 3
+    label: LABEL_OPTIONAL
+    type: TYPE_ENUM
+    type_name: ".telemetry.message.event.ConditionOperationProto"
+  }
+  field {
+    name: "bool_value"
+    number: 4
+    label: LABEL_OPTIONAL
+    type: TYPE_BOOL
+    oneof_index: 0
+  }
+  field {
+    name: "int_value"
+    number: 5
+    label: LABEL_OPTIONAL
+    type: TYPE_INT32
+    oneof_index: 0
+  }
+  oneof_decl {
+    name: "value"
+  }
+}
+message_type {
+  name: "DeviceActionProto"
+  field {
+    name: "sensor_id"
+    number: 1
+    label: LABEL_OPTIONAL
+    type: TYPE_STRING
+  }
+  field {
+    name: "type"
+    number: 2
+    label: LABEL_OPTIONAL
+    type: TYPE_ENUM
+    type_name: ".telemetry.message.event.ActionTypeProto"
+  }
+  field {
+    name: "value"
+    number: 3
+    label: LABEL_OPTIONAL
+    type: TYPE_INT32
+    oneof_index: 0
+    proto3_optional: true
+  }
+  oneof_decl {
+    name: "_value"
+  }
+}
+message_type {
+  name: "ScenarioAddedEventProto"
+  field {
+    name: "name"
+    number: 1
+    label: LABEL_OPTIONAL
+    type: TYPE_STRING
+  }
+  field {
+    name: "condition"
+    number: 2
+    label: LABEL_REPEATED
+    type: TYPE_MESSAGE
+    type_name: ".telemetry.message.event.ScenarioConditionProto"
+  }
+  field {
+    name: "action"
+    number: 3
+    label: LABEL_REPEATED
+    type: TYPE_MESSAGE
+    type_name: ".telemetry.message.event.DeviceActionProto"
+  }
+}
+message_type {
+  name: "ScenarioRemovedEventProto"
+  field {
+    name: "name"
+    number: 1
+    label: LABEL_OPTIONAL
+    type: TYPE_STRING
+  }
+}
+message_type {
+  name: "DeviceActionRequest"
+  field {
+    name: "hub_id"
+    number: 1
+    label: LABEL_OPTIONAL
+    type: TYPE_STRING
+  }
+  field {
+    name: "scenario_name"
+    number: 2
+    label: LABEL_OPTIONAL
+    type: TYPE_STRING
+  }
+  field {
+    name: "action"
+    number: 3
+    label: LABEL_OPTIONAL
+    type: TYPE_MESSAGE
+    type_name: ".telemetry.message.event.DeviceActionProto"
+  }
+  field {
+    name: "timestamp"
+    number: 4
+    label: LABEL_OPTIONAL
+    type: TYPE_MESSAGE
+    type_name: ".google.protobuf.Timestamp"
+  }
+}
+enum_type {
+  name: "DeviceTypeProto"
+  value {
+    name: "MOTION_SENSOR"
+    number: 0
+  }
+  value {
+    name: "TEMPERATURE_SENSOR"
+    number: 1
+  }
+  value {
+    name: "LIGHT_SENSOR"
+    number: 2
+  }
+  value {
+    name: "CLIMATE_SENSOR"
+    number: 3
+  }
+  value {
+    name: "SWITCH_SENSOR"
+    number: 4
+  }
+}
+enum_type {
+  name: "ConditionTypeProto"
+  value {
+    name: "MOTION"
+    number: 0
+  }
+  value {
+    name: "LUMINOSITY"
+    number: 1
+  }
+  value {
+    name: "SWITCH"
+    number: 2
+  }
+  value {
+    name: "TEMPERATURE"
+    number: 3
+  }
+  value {
+    name: "CO2LEVEL"
+    number: 4
+  }
+  value {
+    name: "HUMIDITY"
+    number: 5
+  }
+}
+enum_type {
+  name: "ConditionOperationProto"
+  value {
+    name: "EQUALS"
+    number: 0
+  }
+  value {
+    name: "GREATER_THAN"
+    number: 1
+  }
+  value {
+    name: "LOWER_THAN"
+    number: 2
+  }
+}
+enum_type {
+  name: "ActionTypeProto"
+  value {
+    name: "ACTIVATE"
+    number: 0
+  }
+  value {
+    name: "DEACTIVATE"
+    number: 1
+  }
+  value {
+    name: "INVERSE"
+    number: 2
+  }
+  value {
+    name: "SET_VALUE"
+    number: 3
+  }
+}
+options {
+  java_package: "ru.yandex.practicum.grpc.telemetry.event"
+  java_multiple_files: true
+}
+syntax: "proto3"

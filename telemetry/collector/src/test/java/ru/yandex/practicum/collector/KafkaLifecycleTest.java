@@ -7,8 +7,6 @@ import org.apache.kafka.clients.producer.Producer;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import ru.yandex.practicum.collector.config.KafkaSettings;
-import ru.yandex.practicum.collector.mapping.HubEventMapper;
-import ru.yandex.practicum.collector.mapping.SensorEventMapper;
 import ru.yandex.practicum.collector.service.KafkaEventCollector;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
@@ -21,7 +19,7 @@ class KafkaLifecycleTest {
 
     private KafkaEventCollector collector(Producer<String, SpecificRecord> producer) {
         var settings = new KafkaSettings("localhost:9092", "sensors", "hubs", Map.of(), Duration.ofSeconds(3));
-        return new KafkaEventCollector(producer, settings, new SensorEventMapper(), new HubEventMapper());
+        return new KafkaEventCollector(producer, settings);
     }
 
     @Test
