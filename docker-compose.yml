@@ -7,6 +7,12 @@ services:
       - "9092:9092" # for client connections
       - "9101:9101" # JMX
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server kafka:29092 --list >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092'
@@ -21,7 +27,8 @@ services:
     image: confluentinc/confluent-local:7.4.3
     container_name: kafka-init-topics
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     command: "bash -c \
                 'kafka-topics --create --topic telemetry.sensors.v1 \
                              --partitions 1 --replication-factor 1 --if-not-exists \

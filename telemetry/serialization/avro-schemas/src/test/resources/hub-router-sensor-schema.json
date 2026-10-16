@@ -1,0 +1,127 @@
+{
+  "type": "record",
+  "name": "SensorEventAvro",
+  "namespace": "ru.yandex.practicum.kafka.telemetry.event",
+  "doc": "Schema representing data for sensor event.",
+  "fields": [
+    {
+      "name": "id",
+      "type": {
+        "type": "string",
+        "avro.java.string": "String"
+      },
+      "doc": "Identifier for the sensor."
+    },
+    {
+      "name": "hubId",
+      "type": {
+        "type": "string",
+        "avro.java.string": "String"
+      },
+      "doc": "Identifier for the hub to which the sensor is connected."
+    },
+    {
+      "name": "timestamp",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      },
+      "doc": "Timestamp indicating when the telemetry event occurred."
+    },
+    {
+      "name": "payload",
+      "type": [
+        {
+          "type": "record",
+          "name": "ClimateSensorAvro",
+          "doc": "Schema representing data from climate sensor.",
+          "fields": [
+            {
+              "name": "temperature_c",
+              "type": "int",
+              "doc": "Temperature in Celsius."
+            },
+            {
+              "name": "humidity",
+              "type": "int",
+              "doc": "Humidity level."
+            },
+            {
+              "name": "co2_level",
+              "type": "int",
+              "doc": "Carbon dioxide level."
+            }
+          ]
+        },
+        {
+          "type": "record",
+          "name": "LightSensorAvro",
+          "doc": "Schema representing telemetry data from light sensor.",
+          "fields": [
+            {
+              "name": "link_quality",
+              "type": "int",
+              "doc": "Signal link quality."
+            },
+            {
+              "name": "luminosity",
+              "type": "int",
+              "doc": "Luminosity level."
+            }
+          ]
+        },
+        {
+          "type": "record",
+          "name": "MotionSensorAvro",
+          "doc": "Schema representing telemetry data from motion sensor.",
+          "fields": [
+            {
+              "name": "link_quality",
+              "type": "int",
+              "doc": "Signal link quality."
+            },
+            {
+              "name": "motion",
+              "type": "boolean",
+              "doc": "Indicates whether motion is detected."
+            },
+            {
+              "name": "voltage",
+              "type": "int",
+              "doc": "Voltage level."
+            }
+          ]
+        },
+        {
+          "type": "record",
+          "name": "SwitchSensorAvro",
+          "doc": "Schema representing telemetry data from switch sensor.",
+          "fields": [
+            {
+              "name": "state",
+              "type": "boolean",
+              "doc": "Current state of the switch (on/off)."
+            }
+          ]
+        },
+        {
+          "type": "record",
+          "name": "TemperatureSensorAvro",
+          "doc": "Schema representing telemetry data from temperature sensor.",
+          "fields": [
+            {
+              "name": "temperature_c",
+              "type": "int",
+              "doc": "Temperature in Celsius."
+            },
+            {
+              "name": "temperature_f",
+              "type": "int",
+              "doc": "Temperature in Fahrenheit."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

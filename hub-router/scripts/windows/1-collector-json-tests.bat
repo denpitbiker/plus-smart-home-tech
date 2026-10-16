@@ -20,6 +20,7 @@ echo.
 java -jar "%JAR_PATH%" ^
   --hub-router.execution.mode=COLLECTION ^
   --hub-router.execution.collector.mode=http ^
+  --hub-router.execution.collector.port=8080 ^
   --hub-router.execution.immediate-logging.enabled=false ^
   --hub-router.execution.output.info-enabled=true ^
   --hub-router.execution.output.trace-enabled=true ^
