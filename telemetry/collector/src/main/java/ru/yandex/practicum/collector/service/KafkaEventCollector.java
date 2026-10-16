@@ -8,28 +8,29 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.collector.config.KafkaSettings;
-import ru.yandex.practicum.collector.dto.*;
+import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
+import ru.yandex.practicum.kafka.telemetry.event.SensorEventAvro;
 import ru.yandex.practicum.collector.kafka.PublicationException;
-import ru.yandex.practicum.collector.mapping.*;
 @Service
 public class KafkaEventCollector implements EventCollector, AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(KafkaEventCollector.class);
     private final Producer<String, SpecificRecord> producer;
     private final KafkaSettings settings;
-    private final SensorEventMapper sensors;
-    private final HubEventMapper hubs;
-
-    public KafkaEventCollector(Producer<String, SpecificRecord> producer, KafkaSettings settings,
-                               SensorEventMapper sensors, HubEventMapper hubs) {
-        this.producer = producer; this.settings = settings; this.sensors = sensors; this.hubs = hubs;
+    public KafkaEventCollector(Producer<String, SpecificRecord> producer, KafkaSettings settings) {
+        this.producer = producer;
+        this.settings = settings;
     }
 
-    @Override public CompletableFuture<Void> collect(SensorEvent e) {
-        return send(settings.sensorsTopic(), e.hubId, e.timestamp, e.getType(), sensors.map(e));
+    @Override
+    public CompletableFuture<Void> collect(SensorEventAvro event) {
+        return send(settings.sensorsTopic(), event.getHubId().toString(), event.getTimestamp(),
+                event.getPayload().getClass().getSimpleName(), event);
     }
 
-    @Override public CompletableFuture<Void> collect(HubEvent e) {
-        return send(settings.hubsTopic(), e.hubId, e.timestamp, e.getType(), hubs.map(e));
+    @Override
+    public CompletableFuture<Void> collect(HubEventAvro event) {
+        return send(settings.hubsTopic(), event.getHubId().toString(), event.getTimestamp(),
+                event.getPayload().getClass().getSimpleName(), event);
     }
 
     private CompletableFuture<Void> send(String topic, String hub, Instant time, String type, SpecificRecord data) {

@@ -11,7 +11,11 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.yandex.practicum.collector.config.JsonConfiguration;
-import ru.yandex.practicum.collector.dto.*;
+import ru.yandex.practicum.kafka.telemetry.event.SensorEventAvro;
+import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
+import ru.yandex.practicum.kafka.telemetry.event.LightSensorAvro;
+import ru.yandex.practicum.collector.mapping.SensorEventMapper;
+import ru.yandex.practicum.collector.mapping.HubEventMapper;
 import ru.yandex.practicum.collector.http.*;
 import ru.yandex.practicum.collector.kafka.PublicationException;
 import ru.yandex.practicum.collector.service.EventCollector;
@@ -22,14 +26,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.assertj.core.api.Assertions.*;
 @org.junit.jupiter.api.extension.ExtendWith(org.springframework.boot.test.system.OutputCaptureExtension.class)
 @WebMvcTest(EventController.class)
-@Import(JsonConfiguration.class)
+@Import({JsonConfiguration.class, SensorEventMapper.class, HubEventMapper.class})
 class EventControllerTest {
     @Autowired MockMvc mvc;
     @MockBean EventCollector collector;
 
     @BeforeEach void setup() {
-        when(collector.collect(any(SensorEvent.class))).thenReturn(CompletableFuture.completedFuture(null));
-        when(collector.collect(any(HubEvent.class))).thenReturn(CompletableFuture.completedFuture(null));
+        when(collector.collect(any(SensorEventAvro.class))).thenReturn(CompletableFuture.completedFuture(null));
+        when(collector.collect(any(HubEventAvro.class))).thenReturn(CompletableFuture.completedFuture(null));
     }
 
     static Stream<EventFixtures.Event> events() { return EventFixtures.events().stream(); }
@@ -71,7 +75,7 @@ class EventControllerTest {
     }
 
     @Test void serializationFailureReturns500(org.springframework.boot.test.system.CapturedOutput output) throws Exception {
-        when(collector.collect(any(SensorEvent.class))).thenReturn(CompletableFuture.failedFuture(
+        when(collector.collect(any(SensorEventAvro.class))).thenReturn(CompletableFuture.failedFuture(
                 new org.apache.kafka.common.errors.SerializationException("encoding failed")));
         var result = mvc.perform(post("/events/sensors").contentType("application/json")
                 .content(EventFixtures.events().get(3).json())).andReturn();
@@ -80,21 +84,22 @@ class EventControllerTest {
     }
 
     @Test void defaultsTimestampAndLightValues() throws Exception {
-        var start = java.time.Instant.now();
+        var start = java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
         var result = mvc.perform(post("/events/sensors").contentType("application/json")
                 .content("{\"id\":\"s\",\"hubId\":\"h\",\"type\":\"LIGHT_SENSOR_EVENT\"}"))
                 .andExpect(request().asyncStarted()).andReturn();
         mvc.perform(asyncDispatch(result)).andExpect(status().isOk());
-        var captor = org.mockito.ArgumentCaptor.forClass(SensorEvent.class);
+        var captor = org.mockito.ArgumentCaptor.forClass(SensorEventAvro.class);
         verify(collector).collect(captor.capture());
-        var event = (LightSensorEvent) captor.getValue();
-        assertThat(event.timestamp).isBetween(start, java.time.Instant.now());
-        assertThat(event.linkQuality).isZero(); assertThat(event.luminosity).isZero();
+        var event = captor.getValue();
+        var light = (LightSensorAvro) event.getPayload();
+        assertThat(event.getTimestamp()).isBetween(start, java.time.Instant.now());
+        assertThat(light.getLinkQuality()).isZero(); assertThat(light.getLuminosity()).isZero();
     }
 
     @Test void waitsForAcknowledgementAndReturns503OnFailure(org.springframework.boot.test.system.CapturedOutput output) throws Exception {
         var pending = new CompletableFuture<Void>();
-        when(collector.collect(any(SensorEvent.class))).thenReturn(pending);
+        when(collector.collect(any(SensorEventAvro.class))).thenReturn(pending);
         var result = mvc.perform(post("/events/sensors").contentType("application/json")
                 .content(EventFixtures.events().get(3).json())).andExpect(request().asyncStarted()).andReturn();
         assertThat(pending).isNotDone();
