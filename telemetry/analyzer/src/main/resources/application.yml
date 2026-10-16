@@ -1,3 +1,13 @@
 spring:
   main:
     web-application-type: none
+  datasource:
+    url: ${ANALYZER_DB_URL:jdbc:postgresql://localhost:5432/telemetry_analyzer}
+    username: ${ANALYZER_DB_USERNAME:dbuser}
+    password: ${ANALYZER_DB_PASSWORD:12345}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
