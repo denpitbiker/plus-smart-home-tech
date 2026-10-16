@@ -15,6 +15,8 @@ import ru.yandex.practicum.grpc.telemetry.event.DeviceActionProto;
 import ru.yandex.practicum.grpc.telemetry.event.HubEvent;
 import ru.yandex.practicum.grpc.telemetry.event.ScenarioConditionProto;
 import ru.yandex.practicum.grpc.telemetry.event.SensorEvent;
+import ru.yandex.practicum.grpc.telemetry.hubrouter.HubRouterControllerGrpc;
+import ru.yandex.practicum.grpc.telemetry.hubrouter.HubRouterControllerProto;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -22,7 +24,7 @@ class ProtoContractTest {
 
     static Stream<FileDescriptor> contracts() {
         return Stream.of(SensorEvent.getDescriptor(), HubEvent.getDescriptor(),
-                CollectorControllerOuterClass.getDescriptor());
+                CollectorControllerOuterClass.getDescriptor(), HubRouterControllerProto.getDescriptor());
     }
 
     @ParameterizedTest
@@ -55,6 +57,14 @@ class ProtoContractTest {
         assertFalse(falseCondition.getBoolValue());
         assertEquals(ScenarioConditionProto.ValueCase.INT_VALUE, zeroCondition.getValueCase());
         assertEquals(0, zeroCondition.getIntValue());
+    }
+
+    @Test
+    void generatesHubRouterUnaryRpc() {
+        var method = HubRouterControllerGrpc.getHandleDeviceActionMethod();
+        assertEquals("telemetry.service.hubrouter.HubRouterController/handleDeviceAction",
+                method.getFullMethodName());
+        assertEquals(io.grpc.MethodDescriptor.MethodType.UNARY, method.getType());
     }
 
     @Test

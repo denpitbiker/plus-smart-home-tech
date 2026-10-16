@@ -1,0 +1,17 @@
+name: "telemetry/services/hub_router_controller.proto"
+package: "telemetry.service.hubrouter"
+dependency: "google/protobuf/empty.proto"
+dependency: "telemetry/messages/hub_event.proto"
+service {
+  name: "HubRouterController"
+  method {
+    name: "handleDeviceAction"
+    input_type: ".telemetry.message.event.DeviceActionRequest"
+    output_type: ".google.protobuf.Empty"
+  }
+}
+options {
+  java_package: "ru.yandex.practicum.grpc.telemetry.hubrouter"
+  java_outer_classname: "HubRouterControllerProto"
+}
+syntax: "proto3"
