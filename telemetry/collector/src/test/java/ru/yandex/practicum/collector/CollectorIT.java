@@ -59,7 +59,8 @@ class CollectorIT {
     }
 
     @Test
-    void sendsAllNineEventsThroughGrpcAndKafka() throws Exception {
+    void sendsAllNineEventTypesForMultipleHubsThroughGrpcAndKafka() throws Exception {
+        var events = eventsForMultipleHubs();
         try (var admin = Admin.create(Map.of("bootstrap.servers", BOOTSTRAP))) {
             admin.createTopics(List.of(new NewTopic(SENSORS, 1, (short) 1), new NewTopic(HUBS, 1, (short) 1)))
                     .all().get(20, TimeUnit.SECONDS);
@@ -67,7 +68,7 @@ class CollectorIT {
                     "group.id", PREFIX, "enable.auto.commit", false), new StringDeserializer(), new ByteArrayDeserializer())) {
                 var partitions = List.of(new TopicPartition(SENSORS, 0), new TopicPartition(HUBS, 0));
                 consumer.assign(partitions); consumer.seekToBeginning(partitions);
-                for (var event : GrpcEventFixtures.events()) {
+                for (var event : events) {
                     var call = stub.withDeadlineAfter(40, TimeUnit.SECONDS);
                     if (event.sensor()) {
                         call.collectSensorEvent((SensorEventProto) event.request());
@@ -79,15 +80,19 @@ class CollectorIT {
                         .collectSensorEvent(SensorEventProto.getDefaultInstance()))
                         .isInstanceOfSatisfying(StatusRuntimeException.class,
                                 error -> assertThat(error.getStatus().getCode()).isEqualTo(Status.Code.INVALID_ARGUMENT));
+                assertThatThrownBy(() -> stub.withDeadlineAfter(5, TimeUnit.SECONDS)
+                        .collectHubEvent(HubEventProto.getDefaultInstance()))
+                        .isInstanceOfSatisfying(StatusRuntimeException.class,
+                                error -> assertThat(error.getStatus().getCode()).isEqualTo(Status.Code.INVALID_ARGUMENT));
                 var records = new ArrayList<ConsumerRecord<String, byte[]>>();
                 long deadline = System.nanoTime() + Duration.ofSeconds(15).toNanos();
-                while (records.size() < 9 && System.nanoTime() < deadline) {
+                while (records.size() < events.size() && System.nanoTime() < deadline) {
                     consumer.poll(Duration.ofMillis(250)).forEach(records::add);
                 }
-                assertThat(records).hasSize(9);
+                assertThat(records).hasSize(events.size());
                 for (String topic : List.of(SENSORS, HUBS)) {
                     var actual = records.stream().filter(e -> e.topic().equals(topic)).toList();
-                    var expected = GrpcEventFixtures.events().stream().filter(e -> e.sensor() == topic.equals(SENSORS)).toList();
+                    var expected = events.stream().filter(e -> e.sensor() == topic.equals(SENSORS)).toList();
                     assertThat(actual).hasSameSizeAs(expected);
                     for (int i = 0; i < actual.size(); i++) {
                         var message = actual.get(i);
@@ -96,7 +101,10 @@ class CollectorIT {
                         var decoded = new SpecificDatumReader<SpecificRecord>(schema).read(null, decoder);
                         assertThat(decoded).isEqualTo(expected.get(i).expected());
                         assertThat(decoder.isEnd()).isTrue();
-                        assertThat(message.key()).isEqualTo(topic.equals(SENSORS) ? "hub-1" : "hub-2");
+                        var expectedEvent = expected.get(i).expected();
+                        String expectedHub = expectedEvent instanceof SensorEventAvro sensor
+                                ? sensor.getHubId() : ((HubEventAvro) expectedEvent).getHubId();
+                        assertThat(message.key()).isEqualTo(expectedHub);
                         assertThat(message.timestamp()).isEqualTo(1722957084157L);
                     }
                 }
@@ -106,4 +114,25 @@ class CollectorIT {
             }
         }
     }
+
+    private static List<GrpcEventFixtures.Event> eventsForMultipleHubs() {
+        var events = new ArrayList<GrpcEventFixtures.Event>(GrpcEventFixtures.events());
+        for (var original : GrpcEventFixtures.events()) {
+            var expected = SpecificData.get().deepCopy(original.expected().getSchema(), original.expected());
+            if (original.request() instanceof SensorEventProto sensor) {
+                var record = (SensorEventAvro) expected;
+                record.setHubId("hub-3");
+                if (record.getPayload() instanceof TemperatureSensorAvro temperature) {
+                    temperature.setHubId("hub-3");
+                }
+                events.add(new GrpcEventFixtures.Event(sensor.toBuilder().setHubId("hub-3").build(), record));
+            } else {
+                var hub = (HubEventProto) original.request();
+                ((HubEventAvro) expected).setHubId("hub-3");
+                events.add(new GrpcEventFixtures.Event(hub.toBuilder().setHubId("hub-3").build(), expected));
+            }
+        }
+        return events;
+    }
+
 }
