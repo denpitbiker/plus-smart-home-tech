@@ -12,7 +12,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import net.devh.boot.grpc.server.event.GrpcServerStartedEvent;
 import org.apache.avro.specific.SpecificRecord;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.errors.SerializationException;
@@ -23,15 +22,16 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
-import org.springframework.context.ApplicationListener;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.annotation.DirtiesContext;
 import ru.yandex.practicum.collector.handler.EventDispatcher;
+import ru.yandex.practicum.collector.GrpcEventFixtures;
+import ru.yandex.practicum.collector.GrpcTestConfiguration;
+import java.util.stream.Stream;
+import org.junit.jupiter.params.provider.MethodSource;
 import ru.yandex.practicum.collector.kafka.PublicationException;
 import ru.yandex.practicum.collector.service.EventCollector;
 import ru.yandex.practicum.grpc.telemetry.collector.CollectorControllerGrpc;
@@ -49,7 +49,7 @@ import static org.mockito.Mockito.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE,
         properties = {"grpc.server.port=0", "grpc.server.shutdown-grace-period=1s"})
-@Import(GrpcEventControllerTest.PortConfiguration.class)
+@Import(GrpcTestConfiguration.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @org.junit.jupiter.api.extension.ExtendWith(OutputCaptureExtension.class)
 class GrpcEventControllerTest {
@@ -59,19 +59,6 @@ class GrpcEventControllerTest {
     @Autowired AtomicInteger grpcPort;
     private ManagedChannel channel;
     private CollectorControllerGrpc.CollectorControllerFutureStub stub;
-
-    @TestConfiguration(proxyBeanMethods = false)
-    static class PortConfiguration {
-        @Bean
-        AtomicInteger grpcPort() {
-            return new AtomicInteger();
-        }
-
-        @Bean
-        ApplicationListener<GrpcServerStartedEvent> portListener(AtomicInteger grpcPort) {
-            return event -> grpcPort.set(event.getServer().getPort());
-        }
-    }
 
     @BeforeEach
     void connect() {
@@ -225,6 +212,26 @@ class GrpcEventControllerTest {
         assertThat(Status.fromThrowable(error.getValue()).getCode()).isEqualTo(Status.Code.INTERNAL);
         verifyNoMoreInteractions(observer);
         verifyNoInteractions(collector);
+    }
+
+
+    static Stream<GrpcEventFixtures.Event> events() {
+        return GrpcEventFixtures.events().stream();
+    }
+
+    @ParameterizedTest
+    @MethodSource("events")
+    void acceptsAllNineEventTypes(GrpcEventFixtures.Event event) throws Exception {
+        returns(event.sensor(), CompletableFuture.completedFuture(null));
+        var response = event.sensor()
+                ? stub.collectSensorEvent((SensorEventProto) event.request())
+                : stub.collectHubEvent((HubEventProto) event.request());
+        assertThat(response.get(3, TimeUnit.SECONDS)).isEqualTo(Empty.getDefaultInstance());
+        if (event.sensor()) {
+            verify(collector).collect((SensorEventAvro) event.expected());
+        } else {
+            verify(collector).collect((HubEventAvro) event.expected());
+        }
     }
 
 }

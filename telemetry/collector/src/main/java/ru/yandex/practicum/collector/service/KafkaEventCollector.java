@@ -1,8 +1,10 @@
 package ru.yandex.practicum.collector.service;
+
 import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 import org.apache.avro.specific.SpecificRecord;
-import org.apache.kafka.clients.producer.*;
+import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.SerializationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,11 +13,13 @@ import ru.yandex.practicum.collector.config.KafkaSettings;
 import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
 import ru.yandex.practicum.kafka.telemetry.event.SensorEventAvro;
 import ru.yandex.practicum.collector.kafka.PublicationException;
+
 @Service
 public class KafkaEventCollector implements EventCollector, AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(KafkaEventCollector.class);
     private final Producer<String, SpecificRecord> producer;
     private final KafkaSettings settings;
+
     public KafkaEventCollector(Producer<String, SpecificRecord> producer, KafkaSettings settings) {
         this.producer = producer;
         this.settings = settings;
