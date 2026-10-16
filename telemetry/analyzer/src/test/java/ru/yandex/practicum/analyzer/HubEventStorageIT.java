@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,6 +19,12 @@ import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.yandex.practicum.analyzer.service.HubEventService;
+import ru.yandex.practicum.analyzer.analysis.ScenarioLoader;
+import ru.yandex.practicum.analyzer.analysis.ScenarioEvaluator;
+import ru.yandex.practicum.analyzer.analysis.SnapshotAnalysisService;
+import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
+import ru.yandex.practicum.kafka.telemetry.event.SensorStateAvro;
+import ru.yandex.practicum.kafka.telemetry.event.SwitchSensorAvro;
 import ru.yandex.practicum.kafka.telemetry.event.ActionTypeAvro;
 import ru.yandex.practicum.kafka.telemetry.event.ConditionOperationAvro;
 import ru.yandex.practicum.kafka.telemetry.event.ConditionTypeAvro;
@@ -241,6 +248,39 @@ class HubEventStorageIT {
             assertThrows(IllegalArgumentException.class, () -> send("hub", event));
         }
         assertNoScenarioRows();
+    }
+
+    @Test
+    void loadsOrderedDetachedDefinitionsAndRefreshesOnEachSnapshot() {
+        add("hub", "sensor");
+        add("hub", "target");
+        add("other", "foreign");
+        var first = scenario("zzz-first", "sensor", "target");
+        first.setActions(List.of(new DeviceActionAvro("target", ActionTypeAvro.INVERSE, null),
+                new DeviceActionAvro("target", ActionTypeAvro.SET_VALUE, 0)));
+        send("hub", first);
+        send("hub", scenario("aaa-second", "sensor", "target"));
+        send("other", scenario("foreign", "foreign", "foreign"));
+        var loader = context.getBean(ScenarioLoader.class);
+        var definitions = loader.load("hub");
+        assertEquals(List.of("zzz-first", "aaa-second"), definitions.stream().map(scene -> scene.name()).toList());
+        assertEquals(List.of("INVERSE", "SET_VALUE"),
+                definitions.getFirst().actions().stream().map(action -> action.type().name()).toList());
+        var time = Instant.parse("2024-08-06T15:11:24.157Z");
+        var snapshot = new SensorsSnapshotAvro("hub", time,
+                Map.of("sensor", new SensorStateAvro(time, new SwitchSensorAvro(true))));
+        var analysis = context.getBean(SnapshotAnalysisService.class);
+        assertEquals(3, analysis.analyze(snapshot).size());
+        send("hub", new ScenarioRemovedEventAvro("zzz-first"));
+        assertEquals(1, analysis.analyze(snapshot).size());
+        assertEquals(List.of(), loader.load("unknown"));
+
+        context.close();
+        var commands = new ScenarioEvaluator().evaluate(snapshot, definitions);
+        assertEquals(3, commands.size());
+        assertEquals("target", commands.getFirst().sensorId());
+        assertEquals(time, commands.getFirst().timestamp());
+        assertThrows(UnsupportedOperationException.class, () -> definitions.getFirst().actions().clear());
     }
 
     private void assertNoScenarioRows() {
