@@ -48,19 +48,19 @@ public class AnalysisRunner implements AutoCloseable {
             failure.compareAndSet(null, e);
             log.error("Analyzer processor failed", e);
         } finally {
-            hubs.loop.requestStop();
-            snapshots.loop.requestStop();
+            hubs.requestStop();
+            snapshots.requestStop();
         }
     }
 
     @Override
     public void close() {
-        hubs.loop.requestStop();
-        snapshots.loop.requestStop();
+        hubs.requestStop();
+        snapshots.requestStop();
         try {
-            hubs.loop.close();
+            hubs.close();
         } finally {
-            snapshots.loop.close();
+            snapshots.close();
         }
     }
 }

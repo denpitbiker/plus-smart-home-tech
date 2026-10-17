@@ -25,7 +25,7 @@ public class ScenarioEvaluator {
                 .toList();
     }
 
-    static void validate(SensorsSnapshotAvro snapshot) {
+    public static void validate(SensorsSnapshotAvro snapshot) {
         if (snapshot == null || snapshot.getHubId() == null || snapshot.getHubId().isBlank()
                 || snapshot.getTimestamp() == null || snapshot.getSensorsState() == null) {
             throw new IllegalArgumentException("Snapshot hub, timestamp and sensor states are required");

@@ -8,7 +8,7 @@ import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
 
 @Component
 public class HubEventProcessor implements Runnable {
-    final KafkaLoop<HubEventAvro> loop;
+    private final KafkaLoop<HubEventAvro> loop;
 
     public HubEventProcessor(Consumer<String, HubEventAvro> consumer, KafkaSettings settings, HubEventService service) {
         loop = new KafkaLoop<>(consumer, settings, settings.hubsTopic(), service::handle, HubEventAvro::getHubId);
@@ -17,5 +17,14 @@ public class HubEventProcessor implements Runnable {
     @Override
     public void run() {
         loop.run();
+    }
+
+    public void requestStop() {
+        loop.requestStop();
+    }
+
+    // AnalysisRunner owns shutdown; this component is not independently AutoCloseable.
+    public void close() {
+        loop.close();
     }
 }

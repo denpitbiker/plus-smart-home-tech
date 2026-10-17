@@ -9,7 +9,7 @@ import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
 
 @Component
 public class SnapshotProcessor {
-    final KafkaLoop<SensorsSnapshotAvro> loop;
+    private final KafkaLoop<SensorsSnapshotAvro> loop;
 
     public SnapshotProcessor(Consumer<String, SensorsSnapshotAvro> consumer, KafkaSettings settings,
                              SnapshotAnalysisService analysis, HubRouterClient client) {
@@ -19,5 +19,14 @@ public class SnapshotProcessor {
 
     public void start() {
         loop.run();
+    }
+
+    public void requestStop() {
+        loop.requestStop();
+    }
+
+    // AnalysisRunner owns shutdown; this component is not independently AutoCloseable.
+    public void close() {
+        loop.close();
     }
 }

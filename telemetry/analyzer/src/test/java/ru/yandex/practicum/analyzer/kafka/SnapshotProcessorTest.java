@@ -48,7 +48,7 @@ class SnapshotProcessorTest {
             consumer.updateBeginningOffsets(Map.of(partition, 0L));
             consumer.addRecord(new ConsumerRecord<>("snapshots", 0, 0, "hub", snapshot));
         });
-        consumer.schedulePollTask(processor.loop::requestStop);
+        consumer.schedulePollTask(processor::requestStop);
         if (fail) {
             assertThrows(IllegalStateException.class, processor::start);
             assertTrue(consumer.commits.isEmpty());

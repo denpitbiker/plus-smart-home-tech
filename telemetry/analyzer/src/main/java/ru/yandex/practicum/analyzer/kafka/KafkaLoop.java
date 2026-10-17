@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 import ru.yandex.practicum.analyzer.config.KafkaSettings;
 
 /** Owns a consumer; only wakeup is called from another thread while the loop is running. */
-final class KafkaLoop<T> implements AutoCloseable {
+public final class KafkaLoop<T> implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(KafkaLoop.class);
     private final Consumer<String, T> consumer;
     private final KafkaSettings settings;
@@ -25,7 +25,7 @@ final class KafkaLoop<T> implements AutoCloseable {
     private volatile boolean stopping;
     private boolean started;
 
-    KafkaLoop(Consumer<String, T> consumer, KafkaSettings settings, String topic,
+    public KafkaLoop(Consumer<String, T> consumer, KafkaSettings settings, String topic,
               java.util.function.Consumer<T> handler, Function<T, String> hubId) {
         this.consumer = consumer;
         this.settings = settings;
@@ -34,7 +34,7 @@ final class KafkaLoop<T> implements AutoCloseable {
         this.hubId = hubId;
     }
 
-    void run() {
+    public void run() {
         synchronized (this) {
             if (started) {
                 if (stopping) {
@@ -104,7 +104,7 @@ final class KafkaLoop<T> implements AutoCloseable {
         }
     }
 
-    synchronized void requestStop() {
+    public synchronized void requestStop() {
         if (!stopping) {
             stopping = true;
             if (started && finished.getCount() != 0) {
