@@ -285,6 +285,50 @@ class HubEventStorageIT {
         assertThrows(UnsupportedOperationException.class, () -> definitions.getFirst().actions().clear());
     }
 
+    @ParameterizedTest
+    @ValueSource(ints = {1, 20})
+    void loadsAllScenariosWithThreeQueriesAndReturnsImmutableModels(int number) {
+        add("hub", "sensor");
+        add("hub", "target");
+        add("foreign-hub", "foreign");
+        send("foreign-hub", scenario("foreign", "foreign", "foreign"));
+        for (int i = 0; i < number; i++) {
+            send("hub", new ScenarioAddedEventAvro("scenario-" + i,
+                    List.of(condition(ConditionTypeAvro.SWITCH, true),
+                            condition(ConditionTypeAvro.TEMPERATURE, 10)),
+                    List.of(new DeviceActionAvro("target", ActionTypeAvro.SET_VALUE, 42),
+                            new DeviceActionAvro("target", ActionTypeAvro.INVERSE, null))));
+        }
+        var loader = context.getBean(ScenarioLoader.class);
+        JdbcProbe.reset();
+        var definitions = loader.load("hub");
+        assertEquals(3, JdbcProbe.executions.size());
+        assertTrue(JdbcProbe.executions.stream().allMatch(sql -> sql.startsWith("select")));
+        System.out.printf("ScenarioLoader JDBC SELECTs: scenarios=%d, queries=%d%n", number, JdbcProbe.executions.size());
+        assertEquals(java.util.stream.IntStream.range(0, number).mapToObj(i -> "scenario-" + i).toList(),
+                definitions.stream().map(definition -> definition.name()).toList());
+        JdbcProbe.reset();
+        assertEquals(List.of(), loader.load("unknown"));
+        assertEquals(1, JdbcProbe.executions.size());
+        context.close();
+        JdbcProbe.reset();
+        for (var definition : definitions) {
+            assertEquals("hub", definition.hubId());
+            assertEquals(List.of("SWITCH", "TEMPERATURE"),
+                    definition.conditions().stream().map(condition -> condition.type().name()).toList());
+            assertEquals(List.of(1, 10), definition.conditions().stream().map(condition -> condition.value()).toList());
+            assertEquals(List.of("SET_VALUE", "INVERSE"),
+                    definition.actions().stream().map(action -> action.type().name()).toList());
+            assertEquals(Arrays.asList(42, null), definition.actions().stream().map(action -> action.value()).toList());
+            assertTrue(definition.conditions().stream().allMatch(condition -> condition.sensorId().equals("sensor")));
+            assertTrue(definition.actions().stream().allMatch(action -> action.sensorId().equals("target")));
+            assertThrows(UnsupportedOperationException.class, () -> definition.conditions().clear());
+            assertThrows(UnsupportedOperationException.class, () -> definition.actions().clear());
+        }
+        assertThrows(UnsupportedOperationException.class, definitions::clear);
+        assertEquals(0, JdbcProbe.executions.size());
+    }
+
     @Test
     void batchesLargeScenariosAndKeepsIdentityIdsOrderedAcrossRestart() {
         add("hub", "sensor");
