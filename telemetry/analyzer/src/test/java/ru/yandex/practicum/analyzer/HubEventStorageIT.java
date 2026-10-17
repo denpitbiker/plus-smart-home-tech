@@ -40,6 +40,7 @@ import ru.yandex.practicum.kafka.telemetry.event.ScenarioRemovedEventAvro;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class HubEventStorageIT {
     private final String url = System.getProperty("test.postgres.url", "jdbc:postgresql://localhost:5432/telemetry_analyzer");
@@ -60,7 +61,7 @@ class HubEventStorageIT {
     }
 
     private void openContext() {
-        context = new SpringApplicationBuilder(Analyzer.class).web(WebApplicationType.NONE).run(
+        context = new SpringApplicationBuilder(Analyzer.class, JdbcProbe.class).web(WebApplicationType.NONE).run(
                 "--spring.datasource.url=" + url,
                 "--spring.datasource.username=" + username,
                 "--spring.datasource.password=" + password,
@@ -68,6 +69,7 @@ class HubEventStorageIT {
                 "--spring.flyway.default-schema=" + schema,
                 "--spring.flyway.schemas=" + schema,
                 "--spring.jpa.properties.hibernate.default_schema=" + schema,
+                "--spring.jpa.properties.hibernate.generate_statistics=true",
                 "--spring.main.banner-mode=off");
         jdbc = context.getBean(JdbcTemplate.class);
         service = context.getBean(HubEventService.class);
@@ -281,6 +283,85 @@ class HubEventStorageIT {
         assertEquals("target", commands.getFirst().sensorId());
         assertEquals(time, commands.getFirst().timestamp());
         assertThrows(UnsupportedOperationException.class, () -> definitions.getFirst().actions().clear());
+    }
+
+    @Test
+    void batchesLargeScenariosAndKeepsIdentityIdsOrderedAcrossRestart() {
+        add("hub", "sensor");
+        var conditions = java.util.stream.IntStream.range(0, 125)
+                .mapToObj(i -> condition(ConditionTypeAvro.TEMPERATURE, i)).toList();
+        var actions = java.util.stream.IntStream.range(0, 125)
+                .mapToObj(i -> action(ActionTypeAvro.SET_VALUE, i)).toList();
+        add("hub", "second");
+        add("hub", "third");
+        var sensorIds = List.of("sensor", "second", "third");
+        for (int i = 0; i < 125; i++) {
+            conditions.get(i).setSensorId(sensorIds.get(i % 3));
+            actions.get(i).setSensorId(sensorIds.get(i % 3));
+        }
+        var stats = context.getBean(jakarta.persistence.EntityManagerFactory.class)
+                .unwrap(org.hibernate.SessionFactory.class).getStatistics();
+        stats.clear();
+        JdbcProbe.reset();
+        send("hub", new ScenarioAddedEventAvro("large", conditions, actions));
+        System.out.printf("Batch measurement: 125 conditions + 125 actions + 250 links, batches=%d, flushes=%d%n",
+                JdbcProbe.batches, stats.getFlushCount());
+        assertEquals(12, JdbcProbe.batches); // Four entity types, three batches each.
+        assertTrue(stats.getFlushCount() <= 3, "Flushes must be phase-based");
+        assertEquals(0, JdbcProbe.executions.stream().filter(sql -> sql.startsWith("select")
+                && (sql.contains("scenario_conditions") || sql.contains("scenario_actions"))).count());
+        assertEquals(java.util.stream.IntStream.range(0, 125).boxed().toList(),
+                jdbc.queryForList("SELECT value FROM actions ORDER BY id", Integer.class));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM scenario_conditions sc "
+                + "JOIN conditions c ON c.id=sc.condition_id WHERE sc.sensor_id <> "
+                + "CASE c.value % 3 WHEN 0 THEN 'sensor' WHEN 1 THEN 'second' ELSE 'third' END", Integer.class));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM scenario_actions sa "
+                + "JOIN actions a ON a.id=sa.action_id WHERE sa.sensor_id <> "
+                + "CASE a.value % 3 WHEN 0 THEN 'sensor' WHEN 1 THEN 'second' ELSE 'third' END", Integer.class));
+        Long previousMax = jdbc.queryForObject("SELECT max(id) FROM actions", Long.class);
+        context.close();
+        openContext();
+        send("hub", new ScenarioAddedEventAvro("after-restart", conditions, actions));
+        assertEquals(250, count("actions"));
+        assertTrue(jdbc.queryForObject("SELECT min(a.id) FROM actions a JOIN scenario_actions sa ON sa.action_id=a.id "
+                + "JOIN scenarios s ON s.id=sa.scenario_id WHERE s.name='after-restart'", Long.class) > previousMax);
+        send("hub", new ScenarioAddedEventAvro("large", conditions, actions));
+        assertEquals(250, count("actions"));
+        send("hub", new DeviceRemovedEventAvro("sensor"));
+        assertNoScenarioRows();
+    }
+
+    @Test
+    void rollsBackJdbcLinksAndJpaReplacementTogether() {
+        add("hub", "sensor");
+        send("hub", scenario("scenario", "sensor", "sensor"));
+        var before = jdbc.queryForList("SELECT * FROM scenario_actions");
+        jdbc.execute("ALTER TABLE scenario_actions ADD CONSTRAINT reject_new_action CHECK (action_id < 2)");
+        assertThrows(RuntimeException.class, () -> send("hub", scenario("scenario", "sensor", "sensor")));
+        assertEquals(before, jdbc.queryForList("SELECT * FROM scenario_actions"));
+        assertEquals(1, count("conditions"));
+        assertEquals(1, count("actions"));
+        assertEquals(1, count("scenario_conditions"));
+        assertEquals(1, count("scenarios"));
+    }
+
+    @Test
+    void deletionQueryCountDoesNotGrowWithScenarioCount() {
+        int single = deleteScenariosAndCountQueries(1);
+        int many = deleteScenariosAndCountQueries(20);
+        System.out.printf("Deletion JDBC executions: 1 scenario=%d, 20 scenarios=%d%n", single, many);
+        assertEquals(single, many);
+        assertNoScenarioRows();
+    }
+
+    private int deleteScenariosAndCountQueries(int number) {
+        add("hub", "sensor");
+        for (int i = 0; i < number; i++) {
+            send("hub", scenario("scenario-" + i, "sensor", "sensor"));
+        }
+        JdbcProbe.reset();
+        send("hub", new DeviceRemovedEventAvro("sensor"));
+        return JdbcProbe.executions.size();
     }
 
     private void assertNoScenarioRows() {

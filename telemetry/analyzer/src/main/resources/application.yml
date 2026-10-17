@@ -19,6 +19,8 @@ grpc:
       keepAliveWithoutCalls: true
       negotiationType: plaintext
 analyzer:
+  storage:
+    batch-size: 50
   hub-router:
     deadline: 5s
   kafka:

@@ -1,26 +1,20 @@
 package ru.yandex.practicum.analyzer.service;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.yandex.practicum.analyzer.model.Action;
 import ru.yandex.practicum.analyzer.model.ActionType;
-import ru.yandex.practicum.analyzer.model.Condition;
 import ru.yandex.practicum.analyzer.model.ConditionOperation;
 import ru.yandex.practicum.analyzer.model.ConditionType;
 import ru.yandex.practicum.analyzer.model.Scenario;
-import ru.yandex.practicum.analyzer.model.ScenarioAction;
-import ru.yandex.practicum.analyzer.model.ScenarioCondition;
 import ru.yandex.practicum.analyzer.model.Sensor;
-import ru.yandex.practicum.analyzer.repository.ActionRepository;
-import ru.yandex.practicum.analyzer.repository.ConditionRepository;
-import ru.yandex.practicum.analyzer.repository.ScenarioActionRepository;
-import ru.yandex.practicum.analyzer.repository.ScenarioConditionRepository;
 import ru.yandex.practicum.analyzer.repository.ScenarioRepository;
+import ru.yandex.practicum.analyzer.repository.ScenarioWriteRepository;
 import ru.yandex.practicum.analyzer.repository.SensorRepository;
 import ru.yandex.practicum.kafka.telemetry.event.DeviceAddedEventAvro;
 import ru.yandex.practicum.kafka.telemetry.event.DeviceRemovedEventAvro;
@@ -34,21 +28,13 @@ import ru.yandex.practicum.kafka.telemetry.event.ScenarioRemovedEventAvro;
 public class HubEventService {
     private final SensorRepository sensors;
     private final ScenarioRepository scenarios;
-    private final ConditionRepository conditions;
-    private final ActionRepository actions;
-    private final ScenarioConditionRepository scenarioConditions;
-    private final ScenarioActionRepository scenarioActions;
+    private final ScenarioWriteRepository writes;
 
     public HubEventService(SensorRepository sensors, ScenarioRepository scenarios,
-                           ConditionRepository conditions, ActionRepository actions,
-                           ScenarioConditionRepository scenarioConditions,
-                           ScenarioActionRepository scenarioActions) {
+                           ScenarioWriteRepository writes) {
         this.sensors = sensors;
         this.scenarios = scenarios;
-        this.conditions = conditions;
-        this.actions = actions;
-        this.scenarioConditions = scenarioConditions;
-        this.scenarioActions = scenarioActions;
+        this.writes = writes;
     }
 
     public void handle(HubEventAvro event) {
@@ -85,12 +71,9 @@ public class HubEventService {
     private void removeSensor(String hubId, String sensorId) {
         requireText(sensorId, "Sensor ID");
         sensors.findByIdAndHubId(sensorId, hubId).ifPresent(sensor -> {
-            Set<Long> affected = new HashSet<>(scenarioConditions.findScenarioIdsBySensorId(sensorId));
-            affected.addAll(scenarioActions.findScenarioIdsBySensorId(sensorId));
-            for (Long scenarioId : affected) {
-                removeScenario(scenarios.findById(scenarioId).orElseThrow());
-            }
-            sensors.delete(sensor);
+            var affected = writes.findScenarioIdsBySensorId(sensorId);
+            writes.deleteScenarios(affected);
+            sensors.deleteById(sensorId);
         });
     }
 
@@ -119,38 +102,29 @@ public class HubEventService {
                         && registered.values().stream().allMatch(sensor -> sensor.getHubId().equals(hubId)),
                 "All scenario devices must be registered in the same hub");
 
-        Scenario scenario = scenarios.findByHubIdAndName(hubId, event.getName())
-                .orElseGet(() -> scenarios.saveAndFlush(new Scenario(hubId, event.getName())));
-        removeScenarioContents(scenario);
-        for (var condition : event.getConditions()) {
-            Condition saved = conditions.saveAndFlush(new Condition(
-                    ConditionType.valueOf(condition.getType().name()),
-                    ConditionOperation.valueOf(condition.getOperation().name()), conditionValue(condition)));
-            scenarioConditions.save(new ScenarioCondition(scenario, registered.get(condition.getSensorId()), saved));
+        var newConditions = event.getConditions().stream()
+                .map(condition -> new ScenarioWriteRepository.ConditionRow(condition.getSensorId(),
+                        ConditionType.valueOf(condition.getType().name()),
+                        ConditionOperation.valueOf(condition.getOperation().name()), conditionValue(condition)))
+                .toList();
+        var newActions = event.getActions().stream()
+                .map(action -> new ScenarioWriteRepository.ActionRow(action.getSensorId(),
+                        ActionType.valueOf(action.getType().name()), action.getValue()))
+                .toList();
+        var existing = scenarios.findByHubIdAndName(hubId, event.getName());
+        Scenario scenario;
+        if (existing.isPresent()) {
+            Long scenarioId = existing.get().getId();
+            writes.deleteContents(List.of(scenarioId));
+            scenario = scenarios.findById(scenarioId).orElseThrow();
+        } else {
+            scenario = scenarios.save(new Scenario(hubId, event.getName()));
         }
-        for (var action : event.getActions()) {
-            Action saved = actions.saveAndFlush(new Action(ActionType.valueOf(action.getType().name()), action.getValue()));
-            scenarioActions.save(new ScenarioAction(scenario, registered.get(action.getSensorId()), saved));
-        }
+        writes.insertContents(scenario.getId(), newConditions, newActions);
     }
 
     private void removeScenario(Scenario scenario) {
-        removeScenarioContents(scenario);
-        scenarios.delete(scenario);
-        scenarios.flush();
-    }
-
-    private void removeScenarioContents(Scenario scenario) {
-        var oldConditions = scenarioConditions.findByScenarioIdOrderByConditionId(scenario.getId());
-        var oldActions = scenarioActions.findByScenarioIdOrderByActionId(scenario.getId());
-        var conditionIds = oldConditions.stream().map(link -> link.getCondition().getId()).toList();
-        var actionIds = oldActions.stream().map(link -> link.getAction().getId()).toList();
-        scenarioConditions.deleteAll(oldConditions);
-        scenarioActions.deleteAll(oldActions);
-        scenarioConditions.flush();
-        scenarioActions.flush();
-        conditions.deleteAllByIdInBatch(conditionIds);
-        actions.deleteAllByIdInBatch(actionIds);
+        writes.deleteScenarios(List.of(scenario.getId()));
     }
 
     private static Integer conditionValue(ScenarioConditionAvro condition) {
