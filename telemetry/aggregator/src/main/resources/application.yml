@@ -1,0 +1,26 @@
+spring:
+  main:
+    web-application-type: none
+aggregator:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    sensors-topic: telemetry.sensors.v1
+    snapshots-topic: telemetry.snapshots.v1
+    group-id: telemetry-aggregator
+    poll-timeout: 1s
+    close-timeout: 10s
+    consumer-properties:
+      "[enable.auto.commit]": false
+      "[auto.offset.reset]": earliest
+      "[max.poll.records]": 100
+      "[key.deserializer]": org.apache.kafka.common.serialization.StringDeserializer
+      "[value.deserializer]": ru.yandex.practicum.kafka.telemetry.serialization.SensorEventDeserializer
+    producer-properties:
+      "[acks]": all
+      "[enable.idempotence]": true
+      "[linger.ms]": 5
+      "[delivery.timeout.ms]": 30000
+      "[request.timeout.ms]": 10000
+      "[max.block.ms]": 5000
+      "[key.serializer]": org.apache.kafka.common.serialization.StringSerializer
+      "[value.serializer]": ru.yandex.practicum.kafka.telemetry.serialization.AvroSerializer

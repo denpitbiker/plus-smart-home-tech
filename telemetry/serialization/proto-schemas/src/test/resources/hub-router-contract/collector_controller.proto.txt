@@ -1,0 +1,22 @@
+name: "telemetry/services/collector_controller.proto"
+package: "telemetry.service.collector"
+dependency: "google/protobuf/empty.proto"
+dependency: "telemetry/messages/sensor_event.proto"
+dependency: "telemetry/messages/hub_event.proto"
+service {
+  name: "CollectorController"
+  method {
+    name: "CollectSensorEvent"
+    input_type: ".telemetry.message.event.SensorEventProto"
+    output_type: ".google.protobuf.Empty"
+  }
+  method {
+    name: "CollectHubEvent"
+    input_type: ".telemetry.message.event.HubEventProto"
+    output_type: ".google.protobuf.Empty"
+  }
+}
+options {
+  java_package: "ru.yandex.practicum.grpc.telemetry.collector"
+}
+syntax: "proto3"

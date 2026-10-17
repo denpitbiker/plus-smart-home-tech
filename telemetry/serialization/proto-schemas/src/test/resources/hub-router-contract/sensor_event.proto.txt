@@ -1,0 +1,154 @@
+name: "telemetry/messages/sensor_event.proto"
+package: "telemetry.message.event"
+dependency: "google/protobuf/timestamp.proto"
+message_type {
+  name: "SensorEventProto"
+  field {
+    name: "id"
+    number: 1
+    label: LABEL_OPTIONAL
+    type: TYPE_STRING
+  }
+  field {
+    name: "timestamp"
+    number: 2
+    label: LABEL_OPTIONAL
+    type: TYPE_MESSAGE
+    type_name: ".google.protobuf.Timestamp"
+  }
+  field {
+    name: "hubId"
+    number: 3
+    label: LABEL_OPTIONAL
+    type: TYPE_STRING
+  }
+  field {
+    name: "motion_sensor"
+    number: 4
+    label: LABEL_OPTIONAL
+    type: TYPE_MESSAGE
+    type_name: ".telemetry.message.event.MotionSensorProto"
+    oneof_index: 0
+  }
+  field {
+    name: "temperature_sensor"
+    number: 5
+    label: LABEL_OPTIONAL
+    type: TYPE_MESSAGE
+    type_name: ".telemetry.message.event.TemperatureSensorProto"
+    oneof_index: 0
+  }
+  field {
+    name: "light_sensor"
+    number: 6
+    label: LABEL_OPTIONAL
+    type: TYPE_MESSAGE
+    type_name: ".telemetry.message.event.LightSensorProto"
+    oneof_index: 0
+  }
+  field {
+    name: "climate_sensor"
+    number: 7
+    label: LABEL_OPTIONAL
+    type: TYPE_MESSAGE
+    type_name: ".telemetry.message.event.ClimateSensorProto"
+    oneof_index: 0
+  }
+  field {
+    name: "switch_sensor"
+    number: 8
+    label: LABEL_OPTIONAL
+    type: TYPE_MESSAGE
+    type_name: ".telemetry.message.event.SwitchSensorProto"
+    oneof_index: 0
+  }
+  oneof_decl {
+    name: "payload"
+  }
+}
+message_type {
+  name: "MotionSensorProto"
+  field {
+    name: "link_quality"
+    number: 1
+    label: LABEL_OPTIONAL
+    type: TYPE_INT32
+  }
+  field {
+    name: "motion"
+    number: 2
+    label: LABEL_OPTIONAL
+    type: TYPE_BOOL
+  }
+  field {
+    name: "voltage"
+    number: 3
+    label: LABEL_OPTIONAL
+    type: TYPE_INT32
+  }
+}
+message_type {
+  name: "TemperatureSensorProto"
+  field {
+    name: "temperature_c"
+    number: 1
+    label: LABEL_OPTIONAL
+    type: TYPE_INT32
+  }
+  field {
+    name: "temperature_f"
+    number: 2
+    label: LABEL_OPTIONAL
+    type: TYPE_INT32
+  }
+}
+message_type {
+  name: "LightSensorProto"
+  field {
+    name: "link_quality"
+    number: 1
+    label: LABEL_OPTIONAL
+    type: TYPE_INT32
+  }
+  field {
+    name: "luminosity"
+    number: 2
+    label: LABEL_OPTIONAL
+    type: TYPE_INT32
+  }
+}
+message_type {
+  name: "ClimateSensorProto"
+  field {
+    name: "temperature_c"
+    number: 1
+    label: LABEL_OPTIONAL
+    type: TYPE_INT32
+  }
+  field {
+    name: "humidity"
+    number: 2
+    label: LABEL_OPTIONAL
+    type: TYPE_INT32
+  }
+  field {
+    name: "co2_level"
+    number: 3
+    label: LABEL_OPTIONAL
+    type: TYPE_INT32
+  }
+}
+message_type {
+  name: "SwitchSensorProto"
+  field {
+    name: "state"
+    number: 1
+    label: LABEL_OPTIONAL
+    type: TYPE_BOOL
+  }
+}
+options {
+  java_package: "ru.yandex.practicum.grpc.telemetry.event"
+  java_multiple_files: true
+}
+syntax: "proto3"
