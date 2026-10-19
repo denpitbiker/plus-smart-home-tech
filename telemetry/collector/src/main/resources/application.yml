@@ -1,21 +1,13 @@
-grpc:
-  server:
-    port: ${GRPC_SERVER_PORT:59091}
 spring:
   main:
     web-application-type: none
-collector:
-  kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
-    sensors-topic: telemetry.sensors.v1
-    hubs-topic: telemetry.hubs.v1
-    close-timeout: 10s
-    properties:
-      "[acks]": all
-      "[enable.idempotence]": true
-      "[linger.ms]": 5
-      "[delivery.timeout.ms]": 30000
-      "[request.timeout.ms]": 10000
-      "[max.block.ms]": 5000
-      "[key.serializer]": org.apache.kafka.common.serialization.StringSerializer
-      "[value.serializer]": ru.yandex.practicum.kafka.telemetry.serialization.AvroSerializer
+  application:
+    name: collector
+  config:
+    import: configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+  cloud:
+    config:
+      fail-fast: true
+      retry:
+        useRandomPolicy: true
+        max-interval: 6000
