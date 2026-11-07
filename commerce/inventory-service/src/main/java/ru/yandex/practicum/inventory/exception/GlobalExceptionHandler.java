@@ -43,6 +43,12 @@ public class GlobalExceptionHandler {
                 "Конфликт конкурентного доступа. Данные были изменены другим запросом. Повторите операцию.");
     }
 
+    @ExceptionHandler({DuplicateInventoryException.class, org.springframework.dao.DataIntegrityViolationException.class})
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse handleDuplicate(Exception e) {
+        return new ErrorResponse(HttpStatus.CONFLICT.value(), "Складская запись для товара уже существует");
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleIllegalArgument(IllegalArgumentException e) {
@@ -58,6 +64,14 @@ public class GlobalExceptionHandler {
                 .forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
         log.warn("Ошибка валидации: {}", errors);
         return new ErrorResponse(HttpStatus.BAD_REQUEST.value(), "Ошибка валидации", errors);
+    }
+
+    @ExceptionHandler({org.springframework.http.converter.HttpMessageNotReadableException.class,
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class,
+            org.springframework.web.bind.MissingServletRequestParameterException.class})
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleMalformedRequest(Exception e) {
+        return new ErrorResponse(HttpStatus.BAD_REQUEST.value(), "Некорректный формат запроса");
     }
 
     @ExceptionHandler(Exception.class)

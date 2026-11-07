@@ -2,15 +2,4 @@ spring:
   application:
     name: inventory-service
   config:
-    import: "optional:configserver:"
-  cloud:
-    config:
-      fail-fast: true
-      discovery:
-        enabled: true
-        service-id: config-server
-
-eureka:
-  client:
-    service-url:
-      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+    import: "configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
