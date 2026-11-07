@@ -19,7 +19,7 @@ class KafkaSettingsTest {
     private ApplicationContextRunner runner() {
         return new ApplicationContextRunner().withUserConfiguration(Binding.class).withInitializer(context -> {
             try {
-                new YamlPropertySourceLoader().load("application", new ClassPathResource("application.yml"))
+                new YamlPropertySourceLoader().load("application", new ClassPathResource("config/application.yaml"))
                         .forEach(source -> context.getEnvironment().getPropertySources().addLast(source));
             } catch (java.io.IOException e) {
                 throw new IllegalStateException(e);

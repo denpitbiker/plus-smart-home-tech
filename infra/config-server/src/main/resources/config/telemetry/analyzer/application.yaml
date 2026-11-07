@@ -1,0 +1,45 @@
+spring:
+  datasource:
+    url: ${ANALYZER_DB_URL:jdbc:postgresql://localhost:5432/telemetry_analyzer}
+    username: ${ANALYZER_DB_USERNAME:dbuser}
+    password: ${ANALYZER_DB_PASSWORD:12345}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+grpc:
+  client:
+    hub-router:
+      address: ${HUB_ROUTER_ADDRESS:static://localhost:59090}
+      enableKeepAlive: true
+      keepAliveWithoutCalls: true
+      negotiationType: plaintext
+analyzer:
+  storage:
+    batch-size: 50
+  hub-router:
+    deadline: 5s
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    hubs-topic: telemetry.hubs.v1
+    snapshots-topic: telemetry.snapshots.v1
+    hubs-group-id: telemetry-analyzer-hubs
+    snapshots-group-id: telemetry-analyzer-snapshots
+    poll-timeout: 1s
+    close-timeout: 10s
+    hub-properties:
+      "[enable.auto.commit]": false
+      "[auto.offset.reset]": earliest
+      "[max.poll.records]": 100
+      "[max.poll.interval.ms]": 300000
+      "[key.deserializer]": org.apache.kafka.common.serialization.StringDeserializer
+      "[value.deserializer]": ru.yandex.practicum.kafka.telemetry.serialization.HubEventDeserializer
+    snapshot-properties:
+      "[enable.auto.commit]": false
+      "[auto.offset.reset]": earliest
+      "[max.poll.records]": 1
+      "[max.poll.interval.ms]": 300000
+      "[key.deserializer]": org.apache.kafka.common.serialization.StringDeserializer
+      "[value.deserializer]": ru.yandex.practicum.kafka.telemetry.serialization.SensorsSnapshotDeserializer

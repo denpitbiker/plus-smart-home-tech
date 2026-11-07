@@ -1,5 +1,8 @@
 package ru.yandex.practicum.inventory.dto;
 
+import lombok.Builder;
+
+@Builder
 public record InventoryDto(
 
         Long id,

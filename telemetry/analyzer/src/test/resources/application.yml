@@ -1,0 +1,12 @@
+spring:
+  main:
+    web-application-type: none
+  config:
+    import: classpath:config/application.yaml
+  cloud:
+    config:
+      enabled: false
+
+eureka:
+  client:
+    enabled: false
