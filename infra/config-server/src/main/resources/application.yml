@@ -12,7 +12,8 @@ spring:
         native:
           searchLocations:
             - classpath:config/telemetry/{application}
-            - classpath:config/commerce/{application}
+            - classpath:config-repo
+            - classpath:config-repo/commerce
 
 eureka:
   client:
