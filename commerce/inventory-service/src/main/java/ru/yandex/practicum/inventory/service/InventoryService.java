@@ -4,11 +4,17 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.yandex.practicum.inventory.dto.*;
+import ru.yandex.practicum.inventory.dto.InventoryDto;
+import ru.yandex.practicum.inventory.dto.ReserveRequest;
+import ru.yandex.practicum.inventory.dto.ReserveResponse;
+import ru.yandex.practicum.inventory.dto.UpdateInventoryRequest;
 import ru.yandex.practicum.inventory.entity.Inventory;
-import ru.yandex.practicum.inventory.exception.*;
+import ru.yandex.practicum.inventory.exception.DuplicateInventoryException;
+import ru.yandex.practicum.inventory.exception.InsufficientStockException;
+import ru.yandex.practicum.inventory.exception.NotFoundException;
 import ru.yandex.practicum.inventory.mapper.InventoryMapper;
 import ru.yandex.practicum.inventory.repository.InventoryRepository;
+
 import java.util.List;
 
 @Service

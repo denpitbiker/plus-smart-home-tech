@@ -1,5 +1,7 @@
 package ru.yandex.practicum.inventory;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -9,19 +11,24 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import ru.yandex.practicum.inventory.dto.UpdateInventoryRequest;
+import ru.yandex.practicum.inventory.entity.Inventory;
 import ru.yandex.practicum.inventory.repository.InventoryRepository;
 import ru.yandex.practicum.inventory.service.InventoryService;
+
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doAnswer;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 class InventoryConcurrencyTest {
-    @jakarta.persistence.PersistenceContext private jakarta.persistence.EntityManager entityManager;
+    @PersistenceContext private EntityManager entityManager;
     @Autowired private MockMvc mvc;
     @Autowired private InventoryService service;
     @SpyBean private InventoryRepository repository;
@@ -72,10 +79,10 @@ class InventoryConcurrencyTest {
 
     private void synchronizeReads(long productId) {
         CyclicBarrier barrier = new CyclicBarrier(2);
-        var reads = new java.util.concurrent.atomic.AtomicInteger();
+        var reads = new AtomicInteger();
         doAnswer(invocation -> {
             Object result = entityManager.createQuery("select i from Inventory i where i.productId = :productId",
-                            ru.yandex.practicum.inventory.entity.Inventory.class)
+                            Inventory.class)
                     .setParameter("productId", productId).getResultStream().findFirst();
             // Both transactions must load the same version before either may update it.
             if (reads.incrementAndGet() <= 2) barrier.await(5, TimeUnit.SECONDS);

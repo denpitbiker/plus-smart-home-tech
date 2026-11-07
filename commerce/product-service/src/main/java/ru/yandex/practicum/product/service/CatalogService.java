@@ -4,13 +4,18 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.yandex.practicum.product.dto.*;
+import ru.yandex.practicum.product.dto.CategoryDto;
+import ru.yandex.practicum.product.dto.CreateCategoryRequest;
+import ru.yandex.practicum.product.dto.CreateProductRequest;
+import ru.yandex.practicum.product.dto.ProductDto;
+import ru.yandex.practicum.product.dto.UpdateProductRequest;
 import ru.yandex.practicum.product.entity.Category;
 import ru.yandex.practicum.product.entity.Product;
 import ru.yandex.practicum.product.exception.NotFoundException;
 import ru.yandex.practicum.product.mapper.ProductMapper;
 import ru.yandex.practicum.product.repository.CategoryRepository;
 import ru.yandex.practicum.product.repository.ProductRepository;
+
 import java.util.List;
 
 @Service
