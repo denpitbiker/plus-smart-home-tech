@@ -1,6 +1,7 @@
 package ru.yandex.practicum.product.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +19,7 @@ import ru.yandex.practicum.product.repository.ProductRepository;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -26,52 +28,63 @@ public class CatalogService {
     private final ProductRepository products;
 
     public List<CategoryDto> getCategories() {
+        log.debug("Получение категорий");
         return categories.findAll(Sort.by("id")).stream().map(ProductMapper::toDto).toList();
     }
 
     public CategoryDto getCategory(Long id) {
+        log.debug("Получение категории: id={}", id);
         return ProductMapper.toDto(requireCategory(id));
     }
 
     @Transactional
     public CategoryDto createCategory(CreateCategoryRequest request) {
-        Category category = new Category();
-        category.setName(request.name());
-        category.setDescription(request.description());
+        log.info("Создание категории");
+        Category category = Category.builder()
+                .name(request.name())
+                .description(request.description())
+                .build();
         return ProductMapper.toDto(categories.save(category));
     }
 
     public List<ProductDto> getProducts() {
+        log.debug("Получение активных товаров");
         return products.findByActiveTrueOrderByIdAsc().stream().map(ProductMapper::toDto).toList();
     }
 
     public ProductDto getProduct(Long id) {
+        log.debug("Получение товара: id={}", id);
         return ProductMapper.toDto(requireProduct(id));
     }
 
     public List<ProductDto> getProductsByCategory(Long categoryId) {
+        log.debug("Получение товаров категории: id={}", categoryId);
         requireCategory(categoryId);
         return products.findByCategoryIdAndActiveTrueOrderByIdAsc(categoryId).stream().map(ProductMapper::toDto).toList();
     }
 
     public List<ProductDto> search(String query) {
+        log.debug("Поиск товаров по названию");
         return products.findByActiveTrueAndNameContainingIgnoreCaseOrderByIdAsc(query).stream()
                 .map(ProductMapper::toDto).toList();
     }
 
     @Transactional
     public ProductDto createProduct(CreateProductRequest request) {
-        Product product = new Product();
-        product.setName(request.name());
-        product.setDescription(request.description());
-        product.setPrice(request.price());
-        product.setCategory(request.categoryId() == null ? null : requireCategory(request.categoryId()));
-        product.setImageUrl(request.imageUrl());
+        log.info("Создание товара: categoryId={}", request.categoryId());
+        Product product = Product.builder()
+                .name(request.name())
+                .description(request.description())
+                .price(request.price())
+                .category(request.categoryId() == null ? null : requireCategory(request.categoryId()))
+                .imageUrl(request.imageUrl())
+                .build();
         return ProductMapper.toDto(products.save(product));
     }
 
     @Transactional
     public ProductDto updateProduct(Long id, UpdateProductRequest request) {
+        log.info("Обновление товара: id={}", id);
         Product product = requireProduct(id);
         if (request.name() != null) product.setName(request.name());
         if (request.description() != null) product.setDescription(request.description());

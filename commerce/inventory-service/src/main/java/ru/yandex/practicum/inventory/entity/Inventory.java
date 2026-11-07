@@ -9,6 +9,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Version;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -34,5 +35,11 @@ public class Inventory {
 
     public int getAvailableQuantity() {
         return quantity - reservedQuantity;
+    }
+
+    @Builder
+    public Inventory(Long productId, int quantity) {
+        this.productId = productId;
+        this.quantity = quantity;
     }
 }

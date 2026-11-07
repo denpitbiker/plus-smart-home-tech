@@ -3,13 +3,13 @@ package ru.yandex.practicum.order.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import ru.yandex.practicum.order.dto.CreateOrderRequest;
 import ru.yandex.practicum.order.dto.OrderDto;
@@ -24,23 +24,22 @@ public class OrderController {
     private final OrderService service;
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public OrderDto create(@Valid @RequestBody CreateOrderRequest request) {
-        return service.create(request);
+    public ResponseEntity<OrderDto> create(@Valid @RequestBody CreateOrderRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.create(request));
     }
 
     @GetMapping("/{id}")
-    public OrderDto getById(@PathVariable Long id) {
-        return service.getById(id);
+    public ResponseEntity<OrderDto> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(service.getById(id));
     }
 
     @GetMapping
-    public List<OrderDto> getAll() {
-        return service.getAll();
+    public ResponseEntity<List<OrderDto>> getAll() {
+        return ResponseEntity.ok(service.getAll());
     }
 
     @GetMapping("/by-email")
-    public List<OrderDto> getByEmail(@RequestParam String email) {
-        return service.getByEmail(email);
+    public ResponseEntity<List<OrderDto>> getByEmail(@RequestParam String email) {
+        return ResponseEntity.ok(service.getByEmail(email));
     }
 }

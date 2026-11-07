@@ -1,6 +1,7 @@
 package ru.yandex.practicum.order.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +17,7 @@ import ru.yandex.practicum.order.repository.OrderRepository;
 import java.math.BigDecimal;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -24,16 +26,19 @@ public class OrderService {
 
     @Transactional
     public OrderDto create(CreateOrderRequest request) {
-        Order order = new Order();
-        order.setCustomerName(request.customerName());
-        order.setCustomerEmail(request.customerEmail());
+        log.info("Создание заказа: позиций={}", request.items().size());
+        Order order = Order.builder()
+                .customerName(request.customerName())
+                .customerEmail(request.customerEmail())
+                .build();
         BigDecimal total = BigDecimal.ZERO;
         for (OrderItemRequest requestedItem : request.items()) {
-            OrderItem item = new OrderItem();
-            item.setProductId(requestedItem.productId());
-            item.setProductName(requestedItem.productName());
-            item.setQuantity(requestedItem.quantity());
-            item.setPrice(requestedItem.price());
+            OrderItem item = OrderItem.builder()
+                    .productId(requestedItem.productId())
+                    .productName(requestedItem.productName())
+                    .quantity(requestedItem.quantity())
+                    .price(requestedItem.price())
+                    .build();
             order.addItem(item);
             total = total.add(requestedItem.price().multiply(BigDecimal.valueOf(requestedItem.quantity())));
         }
@@ -42,15 +47,18 @@ public class OrderService {
     }
 
     public OrderDto getById(Long id) {
+        log.debug("Получение заказа: id={}", id);
         return OrderMapper.toDto(repository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Заказ не найден: " + id)));
     }
 
     public List<OrderDto> getAll() {
+        log.debug("Получение всех записей");
         return repository.findAll(Sort.by("id")).stream().map(OrderMapper::toDto).toList();
     }
 
     public List<OrderDto> getByEmail(String email) {
+        log.debug("Поиск заказов по email");
         return repository.findByCustomerEmailOrderByIdAsc(email).stream().map(OrderMapper::toDto).toList();
     }
 }

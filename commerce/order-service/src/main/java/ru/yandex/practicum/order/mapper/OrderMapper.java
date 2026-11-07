@@ -10,12 +10,25 @@ public final class OrderMapper {
     }
 
     public static OrderDto toDto(Order order) {
-        return new OrderDto(order.getId(), order.getCustomerName(), order.getCustomerEmail(), order.getStatus().name(),
-                order.getTotalPrice(), order.getStatusDetails(), order.getCreatedAt(),
-                order.getItems().stream().map(OrderMapper::toDto).toList());
+        return OrderDto.builder()
+                .id(order.getId())
+                .customerName(order.getCustomerName())
+                .customerEmail(order.getCustomerEmail())
+                .status(order.getStatus().name())
+                .totalPrice(order.getTotalPrice())
+                .statusDetails(order.getStatusDetails())
+                .createdAt(order.getCreatedAt())
+                .items(order.getItems().stream().map(OrderMapper::toDto).toList())
+                .build();
     }
 
     private static OrderItemDto toDto(OrderItem item) {
-        return new OrderItemDto(item.getId(), item.getProductId(), item.getProductName(), item.getQuantity(), item.getPrice());
+        return OrderItemDto.builder()
+                .id(item.getId())
+                .productId(item.getProductId())
+                .productName(item.getProductName())
+                .quantity(item.getQuantity())
+                .price(item.getPrice())
+                .build();
     }
 }

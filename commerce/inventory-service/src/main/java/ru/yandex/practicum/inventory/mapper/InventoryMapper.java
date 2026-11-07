@@ -8,7 +8,12 @@ public final class InventoryMapper {
     }
 
     public static InventoryDto toDto(Inventory inventory) {
-        return new InventoryDto(inventory.getId(), inventory.getProductId(), inventory.getQuantity(),
-                inventory.getReservedQuantity(), inventory.getAvailableQuantity());
+        return InventoryDto.builder()
+                .id(inventory.getId())
+                .productId(inventory.getProductId())
+                .quantity(inventory.getQuantity())
+                .reservedQuantity(inventory.getReservedQuantity())
+                .availableQuantity(inventory.getAvailableQuantity())
+                .build();
     }
 }

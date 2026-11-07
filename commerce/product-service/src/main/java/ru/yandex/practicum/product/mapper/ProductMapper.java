@@ -10,11 +10,22 @@ public final class ProductMapper {
     }
 
     public static CategoryDto toDto(Category category) {
-        return category == null ? null : new CategoryDto(category.getId(), category.getName(), category.getDescription());
+        return category == null ? null : CategoryDto.builder()
+                .id(category.getId())
+                .name(category.getName())
+                .description(category.getDescription())
+                .build();
     }
 
     public static ProductDto toDto(Product product) {
-        return new ProductDto(product.getId(), product.getName(), product.getDescription(), product.getPrice(),
-                toDto(product.getCategory()), product.getImageUrl(), product.isActive());
+        return ProductDto.builder()
+                .id(product.getId())
+                .name(product.getName())
+                .description(product.getDescription())
+                .price(product.getPrice())
+                .category(toDto(product.getCategory()))
+                .imageUrl(product.getImageUrl())
+                .active(product.isActive())
+                .build();
     }
 }
