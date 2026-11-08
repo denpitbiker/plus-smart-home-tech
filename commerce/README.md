@@ -28,14 +28,15 @@ java -jar infra/config-server/target/config-server-1.0-SNAPSHOT.jar
 java -jar commerce/product-service/target/product-service-1.0-SNAPSHOT.jar
 java -jar commerce/inventory-service/target/inventory-service-1.0-SNAPSHOT.jar
 java -jar commerce/order-service/target/order-service-1.0-SNAPSHOT.jar
-java -jar commerce/web-ui/web-ui.jar --spring.profiles.active=discovery
+java -jar infra/api-gateway/target/api-gateway-1.0-SNAPSHOT.jar
+java -jar commerce/web-ui/web-ui.jar --spring.profiles.active=gateway-secured
 ```
 
 Перед запуском commerce нужно дождаться готовности Config Server и Eureka.
 Eureka: http://localhost:8761, магазин: http://localhost:8443.
 Порты сервисов случайные, их можно посмотреть в логах.
 
-Для режима `direct` вместо последней команды указать адреса сервисов:
+Для отдельной проверки сервисов без Gateway можно использовать режим `direct`:
 
 ```bash
 java -jar commerce/web-ui/web-ui.jar --spring.profiles.active=direct \

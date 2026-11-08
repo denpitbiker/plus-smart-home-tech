@@ -1,5 +1,6 @@
 package ru.yandex.practicum.gateway;
 
+import org.springframework.http.HttpMethod;
 import reactor.core.publisher.Mono;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
@@ -12,7 +13,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
 final class Stubs implements AutoCloseable {
     static final String ERROR = "{\"status\":404,\"message\":\"Product not found\"}";
 
-    final List<String> requests = new CopyOnWriteArrayList<>();
+    record Request(HttpMethod method, String uri) {
+    }
+
+    final List<Request> requests = new CopyOnWriteArrayList<>();
     final List<String> bodies = new CopyOnWriteArrayList<>();
     final Queue<Integer> statuses = new ConcurrentLinkedQueue<>();
     private final DisposableServer server;
@@ -21,7 +25,7 @@ final class Stubs implements AutoCloseable {
         server = HttpServer.create().host("localhost").port(0)
                 .handle((request, response) -> request.receive().aggregate().asString()
                         .defaultIfEmpty("").flatMap(body -> {
-                            requests.add(request.method().name() + " " + request.uri());
+                            requests.add(new Request(HttpMethod.valueOf(request.method().name()), request.uri()));
                             bodies.add(body);
                             Integer status = statuses.poll();
                             int code = status == null ? 200 : status;
