@@ -21,8 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.springframework.security.config.Customizer.withDefaults;
-import static ru.yandex.practicum.gateway.security.GatewaySecurityProperties.ADMIN_ROLE;
-import static ru.yandex.practicum.gateway.security.GatewaySecurityProperties.USER_ROLE;
+import static ru.yandex.practicum.gateway.security.Role.ADMIN;
+import static ru.yandex.practicum.gateway.security.Role.USER;
 
 @Configuration
 @EnableWebFluxSecurity
@@ -62,13 +62,13 @@ public class GatewaySecurityConfig {
                         .pathMatchers(HttpMethod.GET, HEALTH_PATH).permitAll()
                         .pathMatchers(HttpMethod.GET, DOCUMENTATION_PATHS).permitAll()
                         .pathMatchers(HttpMethod.GET, CATALOG_PATHS).permitAll()
-                        .pathMatchers(HttpMethod.GET, ORDER_LIST_PATHS).hasRole(ADMIN_ROLE)
-                        .pathMatchers(HttpMethod.GET, ORDER_READ_PATHS).hasRole(USER_ROLE)
-                        .pathMatchers(HttpMethod.POST, ORDER_CREATE_PATHS).hasRole(USER_ROLE)
-                        .pathMatchers(HttpMethod.POST, CATALOG_PATHS).hasRole(ADMIN_ROLE)
-                        .pathMatchers(HttpMethod.PUT, CATALOG_PATHS).hasRole(ADMIN_ROLE)
-                        .pathMatchers(HttpMethod.PATCH, CATALOG_PATHS).hasRole(ADMIN_ROLE)
-                        .pathMatchers(HttpMethod.DELETE, CATALOG_PATHS).hasRole(ADMIN_ROLE)
+                        .pathMatchers(HttpMethod.GET, ORDER_LIST_PATHS).hasRole(ADMIN.name())
+                        .pathMatchers(HttpMethod.GET, ORDER_READ_PATHS).hasRole(USER.name())
+                        .pathMatchers(HttpMethod.POST, ORDER_CREATE_PATHS).hasRole(USER.name())
+                        .pathMatchers(HttpMethod.POST, CATALOG_PATHS).hasRole(ADMIN.name())
+                        .pathMatchers(HttpMethod.PUT, CATALOG_PATHS).hasRole(ADMIN.name())
+                        .pathMatchers(HttpMethod.PATCH, CATALOG_PATHS).hasRole(ADMIN.name())
+                        .pathMatchers(HttpMethod.DELETE, CATALOG_PATHS).hasRole(ADMIN.name())
                         .anyExchange().denyAll())
                 .build();
     }
@@ -83,9 +83,13 @@ public class GatewaySecurityConfig {
                                                            PasswordEncoder encoder) {
         List<UserDetails> users = new ArrayList<>();
         for (GatewaySecurityProperties.Account account : properties.users()) {
+            String[] roles = new String[account.roles().size()];
+            for (int i = 0; i < roles.length; i++) {
+                roles[i] = account.roles().get(i).name();
+            }
             UserDetails user = User.withUsername(account.username())
                     .password(encoder.encode(account.password()))
-                    .roles(account.roles().toArray(String[]::new))
+                    .roles(roles)
                     .build();
             users.add(user);
         }

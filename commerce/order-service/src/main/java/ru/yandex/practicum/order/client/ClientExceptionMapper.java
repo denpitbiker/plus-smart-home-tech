@@ -4,11 +4,11 @@ import feign.FeignException;
 import ru.yandex.practicum.order.exception.DependencyUnavailableException;
 import ru.yandex.practicum.order.exception.NotFoundException;
 
-final class ClientExceptionMapper {
+public final class ClientExceptionMapper {
     private ClientExceptionMapper() {
     }
 
-    static RuntimeException map(Throwable cause, String service, Long productId) {
+    public static RuntimeException map(Throwable cause, String service, Long productId) {
         if (cause instanceof FeignException.NotFound) {
             return new NotFoundException(service + ": товар не найден: " + productId);
         }

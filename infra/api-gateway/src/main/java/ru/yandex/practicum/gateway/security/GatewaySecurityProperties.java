@@ -8,10 +8,6 @@ import java.util.Set;
 
 @ConfigurationProperties("app.security")
 public record GatewaySecurityProperties(List<Account> users) {
-    static final String USER_ROLE = "USER";
-    static final String ADMIN_ROLE = "ADMIN";
-    private static final Set<String> ALLOWED_ROLES = Set.of(USER_ROLE, ADMIN_ROLE);
-
     public GatewaySecurityProperties {
         if (users == null || users.isEmpty()) {
             throw new IllegalArgumentException("app.security.users must not be empty");
@@ -20,9 +16,16 @@ public record GatewaySecurityProperties(List<Account> users) {
         for (Account user : users) {
             if (user == null || user.username() == null || user.username().isBlank()
                     || user.password() == null || user.password().isBlank()
-                    || user.roles() == null || user.roles().isEmpty()
-                    || !ALLOWED_ROLES.containsAll(user.roles())) {
+                    || user.roles() == null || user.roles().isEmpty()) {
                 throw new IllegalArgumentException("Security user requires username, password and USER/ADMIN roles");
+            }
+            if (user.password().startsWith("${") && user.password().endsWith("}")) {
+                throw new IllegalArgumentException("Security password environment variable is not set");
+            }
+            for (Role role : user.roles()) {
+                if (role == null) {
+                    throw new IllegalArgumentException("Security role must not be null");
+                }
             }
             if (!usernames.add(user.username())) {
                 throw new IllegalArgumentException("Duplicate security username: " + user.username());
@@ -31,6 +34,6 @@ public record GatewaySecurityProperties(List<Account> users) {
         users = List.copyOf(users);
     }
 
-    public record Account(String username, String password, List<String> roles) {
+    public record Account(String username, String password, List<Role> roles) {
     }
 }

@@ -70,10 +70,10 @@ app:
   security:
     users:
       - username: ivan
-        password: ivan
+        password: ${SECURITY_IVAN_PASSWORD}
         roles: [USER]
       - username: anna
-        password: anna
+        password: ${SECURITY_ANNA_PASSWORD}
         roles: [USER, ADMIN]
 
 management:

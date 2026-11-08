@@ -15,6 +15,8 @@ import static ru.yandex.practicum.gateway.GatewayTestData.WRONG_PASSWORD;
 class GatewaySecurityPropertiesTest {
     private static final String USERNAME_PROPERTY = "app.security.users[0].username=" + IVAN_USERNAME;
     private static final String PASSWORD_PROPERTY = "app.security.users[0].password=" + IVAN_PASSWORD;
+    private static final String MISSING_PASSWORD_PROPERTY = "app.security.users[0].password=${MISSING_TEST_PASSWORD}";
+    private static final String UNKNOWN_ROLE_PROPERTY = "app.security.users[0].roles[0]=MANAGER";
     private static final String USER_ROLE_PROPERTY = "app.security.users[0].roles[0]=USER";
     private static final String[] VALID_USER_PROPERTIES = {
             USERNAME_PROPERTY, PASSWORD_PROPERTY, USER_ROLE_PROPERTY
@@ -54,6 +56,18 @@ class GatewaySecurityPropertiesTest {
     @Test
     void rejectsDuplicateUsernames() {
         context.withPropertyValues(DUPLICATE_USER_PROPERTIES)
+                .run(app -> assertThat(app).hasFailed());
+    }
+
+    @Test
+    void rejectsMissingPasswordEnvironmentVariable() {
+        context.withPropertyValues(USERNAME_PROPERTY, MISSING_PASSWORD_PROPERTY, USER_ROLE_PROPERTY)
+                .run(app -> assertThat(app).hasFailed());
+    }
+
+    @Test
+    void rejectsUnknownRoles() {
+        context.withPropertyValues(USERNAME_PROPERTY, PASSWORD_PROPERTY, UNKNOWN_ROLE_PROPERTY)
                 .run(app -> assertThat(app).hasFailed());
     }
 

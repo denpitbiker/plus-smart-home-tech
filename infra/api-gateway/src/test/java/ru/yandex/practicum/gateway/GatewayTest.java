@@ -3,6 +3,7 @@ package ru.yandex.practicum.gateway;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
@@ -22,11 +23,14 @@ import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.OK;
 import static ru.yandex.practicum.gateway.GatewayTestData.ANNA_PASSWORD;
+import static ru.yandex.practicum.gateway.GatewayTestData.ANNA_PASSWORD_PROPERTY;
 import static ru.yandex.practicum.gateway.GatewayTestData.ANNA_USERNAME;
 import static ru.yandex.practicum.gateway.GatewayTestData.IVAN_PASSWORD;
+import static ru.yandex.practicum.gateway.GatewayTestData.IVAN_PASSWORD_PROPERTY;
 import static ru.yandex.practicum.gateway.GatewayTestData.IVAN_USERNAME;
 
 @SpringBootTest(webEnvironment = RANDOM_PORT, properties = {
+        IVAN_PASSWORD_PROPERTY, ANNA_PASSWORD_PROPERTY,
         "spring.config.location=classpath:gateway-config/api-gateway.yaml",
         "spring.cloud.config.enabled=false",
         "eureka.client.enabled=false"
@@ -49,6 +53,7 @@ class GatewayTest {
     private static final List<Integer> RECOVERING_RESPONSES = List.of(NOT_FOUND.value(), NOT_FOUND.value(), OK.value());
     private static final List<Integer> NOT_FOUND_RESPONSES = List.of(
             NOT_FOUND.value(), NOT_FOUND.value(), NOT_FOUND.value(), NOT_FOUND.value());
+    private static final List<Integer> NON_RETRYABLE_RESPONSES = List.of(INTERNAL_SERVER_ERROR.value(), NOT_FOUND.value());
     private static final List<Integer> WRITE_RESPONSES = List.of(NOT_FOUND.value(), NOT_FOUND.value());
     private static final String PRODUCT_BODY = """
             {"name":"Lamp","price":100,"categoryId":1}
@@ -87,7 +92,10 @@ class GatewayTest {
     }
 
     @Test
+    @DisplayName("Маршруты сохраняют параметры запроса и выбирают нужный сервис")
     void routesRequestsAndPreservesQueryParameters() {
+        // Given: сервисы зарегистрированы в services(), заглушки сброшены в reset().
+        // When / Then
         for (String path : CATALOG_PATHS) {
             client.get().uri(path).exchange().expectStatus().isOk()
                     .expectBody().jsonPath(SERVICE_JSON_PATH).isEqualTo(PRODUCT_SERVICE);
@@ -105,33 +113,44 @@ class GatewayTest {
     }
 
     @Test
+    @DisplayName("GET товара повторяется после 404 до успешного ответа")
     void retriesProductNotFoundUntilSuccess() {
+        // Given
         PRODUCTS.statuses.addAll(RECOVERING_RESPONSES);
+        // When / Then
         client.get().uri(PRODUCT_PATH).exchange().expectStatus().isOk().expectBody().returnResult();
         assertThat(PRODUCTS.requests).hasSize(RECOVERING_RESPONSES.size())
                 .containsOnly(new Request(GET, PRODUCT_PATH));
     }
 
     @Test
+    @DisplayName("После трёх повторов возвращается последняя ошибка")
     void returnsLastErrorAfterThreeRetries() {
+        // Given
         PRODUCTS.statuses.addAll(NOT_FOUND_RESPONSES);
+        // When / Then
         client.get().uri(PRODUCT_PATH).exchange().expectStatus().isNotFound()
                 .expectBody().json(Stubs.ERROR);
         assertThat(PRODUCTS.requests).hasSize(NOT_FOUND_RESPONSES.size()).containsOnly(new Request(GET, PRODUCT_PATH));
     }
 
     @Test
+    @DisplayName("Ошибки 500 и ошибки категорий не повторяются")
     void doesNotRetryOtherStatusesOrCategoryErrors() {
-        PRODUCTS.statuses.add(INTERNAL_SERVER_ERROR.value());
+        // Given
+        PRODUCTS.statuses.addAll(NON_RETRYABLE_RESPONSES);
+        // When / Then
         client.get().uri(PRODUCT_PATH).exchange().expectStatus().is5xxServerError().expectBody().returnResult();
-        PRODUCTS.statuses.add(NOT_FOUND.value());
         client.get().uri(CATEGORY_PATH).exchange().expectStatus().isNotFound().expectBody().returnResult();
         assertThat(PRODUCTS.requests).containsExactly(new Request(GET, PRODUCT_PATH), new Request(GET, CATEGORY_PATH));
     }
 
     @Test
+    @DisplayName("Запись передаёт тело запроса без повторов")
     void forwardsWriteBodyWithoutRetrying() {
+        // Given
         PRODUCTS.statuses.addAll(WRITE_RESPONSES);
+        // When / Then
         client.post().uri(PRODUCTS_PATH)
                 .headers(headers -> headers.setBasicAuth(ANNA_USERNAME, ANNA_PASSWORD))
                 .contentType(MediaType.APPLICATION_JSON).bodyValue(PRODUCT_BODY)

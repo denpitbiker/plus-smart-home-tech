@@ -15,8 +15,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpStatus.GATEWAY_TIMEOUT;
+import static ru.yandex.practicum.gateway.GatewayTestData.ANNA_PASSWORD_PROPERTY;
+import static ru.yandex.practicum.gateway.GatewayTestData.IVAN_PASSWORD_PROPERTY;
 
 @SpringBootTest(webEnvironment = RANDOM_PORT, properties = {
+        IVAN_PASSWORD_PROPERTY, ANNA_PASSWORD_PROPERTY,
         "spring.config.location=classpath:gateway-config/api-gateway.yaml",
         "spring.cloud.config.enabled=false",
         "eureka.client.enabled=false",

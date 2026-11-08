@@ -5,6 +5,8 @@
 
 ```bash
 mvn -pl infra/api-gateway -am package
+export SECURITY_IVAN_PASSWORD=ivan
+export SECURITY_ANNA_PASSWORD=anna
 java -jar infra/api-gateway/target/api-gateway-1.0-SNAPSHOT.jar
 java -jar commerce/web-ui/web-ui.jar --spring.profiles.active=gateway-secured
 ```
@@ -15,6 +17,7 @@ java -jar commerce/web-ui/web-ui.jar --spring.profiles.active=gateway-secured
 GET `/api/products/**`, `/api/categories/**`, `/api/inventory/**` доступны всем.
 `ivan:ivan` может создавать заказы и читать их по ID или email.
 `anna:anna` также может изменять каталог и склад и читать общий список заказов.
+Пароли передаются Gateway через `SECURITY_IVAN_PASSWORD` и `SECURITY_ANNA_PASSWORD`; значения выше — для учебного запуска.
 Пользователи и CORS задаются во внешней конфигурации `app.security` и `globalcors`.
 Публичный health-check: `GET /actuator/health`, без диагностических деталей.
 Таймаут подключения к сервисам — 1 секунда, ответа — 10 секунд.
