@@ -28,6 +28,7 @@ import static ru.yandex.practicum.gateway.security.GatewaySecurityProperties.USE
 @EnableWebFluxSecurity
 @EnableConfigurationProperties(GatewaySecurityProperties.class)
 public class GatewaySecurityConfig {
+    private static final String HEALTH_PATH = "/actuator/health";
     private static final String ALL_PATHS = "/**";
     private static final String[] DOCUMENTATION_PATHS = {
             "/product-service/v3/api-docs", "/product-service/v3/api-docs/**",
@@ -58,6 +59,7 @@ public class GatewaySecurityConfig {
                 .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
                 .authorizeExchange(access -> access
                         .pathMatchers(HttpMethod.OPTIONS, ALL_PATHS).permitAll()
+                        .pathMatchers(HttpMethod.GET, HEALTH_PATH).permitAll()
                         .pathMatchers(HttpMethod.GET, DOCUMENTATION_PATHS).permitAll()
                         .pathMatchers(HttpMethod.GET, CATALOG_PATHS).permitAll()
                         .pathMatchers(HttpMethod.GET, ORDER_LIST_PATHS).hasRole(ADMIN_ROLE)

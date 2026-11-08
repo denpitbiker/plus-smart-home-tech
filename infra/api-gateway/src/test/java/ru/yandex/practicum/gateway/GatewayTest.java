@@ -107,7 +107,7 @@ class GatewayTest {
     @Test
     void retriesProductNotFoundUntilSuccess() {
         PRODUCTS.statuses.addAll(RECOVERING_RESPONSES);
-        client.get().uri(PRODUCT_PATH).exchange().expectStatus().isOk();
+        client.get().uri(PRODUCT_PATH).exchange().expectStatus().isOk().expectBody().returnResult();
         assertThat(PRODUCTS.requests).hasSize(RECOVERING_RESPONSES.size())
                 .containsOnly(new Request(GET, PRODUCT_PATH));
     }
@@ -123,9 +123,9 @@ class GatewayTest {
     @Test
     void doesNotRetryOtherStatusesOrCategoryErrors() {
         PRODUCTS.statuses.add(INTERNAL_SERVER_ERROR.value());
-        client.get().uri(PRODUCT_PATH).exchange().expectStatus().is5xxServerError();
+        client.get().uri(PRODUCT_PATH).exchange().expectStatus().is5xxServerError().expectBody().returnResult();
         PRODUCTS.statuses.add(NOT_FOUND.value());
-        client.get().uri(CATEGORY_PATH).exchange().expectStatus().isNotFound();
+        client.get().uri(CATEGORY_PATH).exchange().expectStatus().isNotFound().expectBody().returnResult();
         assertThat(PRODUCTS.requests).containsExactly(new Request(GET, PRODUCT_PATH), new Request(GET, CATEGORY_PATH));
     }
 
@@ -135,11 +135,11 @@ class GatewayTest {
         client.post().uri(PRODUCTS_PATH)
                 .headers(headers -> headers.setBasicAuth(ANNA_USERNAME, ANNA_PASSWORD))
                 .contentType(MediaType.APPLICATION_JSON).bodyValue(PRODUCT_BODY)
-                .exchange().expectStatus().isNotFound();
+                .exchange().expectStatus().isNotFound().expectBody().returnResult();
         client.patch().uri(PRODUCT_PATH)
                 .headers(headers -> headers.setBasicAuth(ANNA_USERNAME, ANNA_PASSWORD))
                 .contentType(MediaType.APPLICATION_JSON).bodyValue(PRODUCT_BODY)
-                .exchange().expectStatus().isNotFound();
+                .exchange().expectStatus().isNotFound().expectBody().returnResult();
         assertThat(PRODUCTS.requests).containsExactly(new Request(POST, PRODUCTS_PATH), new Request(PATCH, PRODUCT_PATH));
         assertThat(PRODUCTS.bodies).containsExactly(PRODUCT_BODY, PRODUCT_BODY);
     }

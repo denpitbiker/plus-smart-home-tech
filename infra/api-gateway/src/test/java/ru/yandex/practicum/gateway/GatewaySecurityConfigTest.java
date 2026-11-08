@@ -32,6 +32,8 @@ import static ru.yandex.practicum.gateway.GatewayTestData.WRONG_PASSWORD;
 })
 class GatewaySecurityConfigTest {
     private static final Stubs BACKEND = new Stubs("test-backend");
+    private static final String HEALTH_PATH = "/actuator/health";
+    private static final String HEALTH_RESPONSE = "{\"status\":\"UP\"}";
     private static final String UI_ORIGIN = "http://localhost:8443";
     private static final String PRODUCTS_PATH = "/api/products";
     private static final String PRODUCT_PATH = "/api/products/1";
@@ -59,7 +61,8 @@ class GatewaySecurityConfigTest {
     private static final List<String> FORBIDDEN_PATHS = List.of(
             "/unknown", "/products", "/orders", "/api/orders/unknown",
             "/api/orders/1/details", "/product-service/api/products", "/PRODUCT-SERVICE/api/products",
-            "/product-service/actuator", "/login", "/logout");
+            "/product-service/actuator", "/actuator", "/actuator/env", "/actuator/gateway/routes",
+            "/actuator/health/diskSpace", "/login", "/logout");
     private static final List<String> DOCUMENTATION_PATHS = List.of(
             "/v3/api-docs", "/v3/api-docs/swagger-config",
             "/swagger-ui.html", "/swagger-ui/index.html");
@@ -85,9 +88,18 @@ class GatewaySecurityConfigTest {
     }
 
     @Test
+    void healthIsPublicWithoutDiagnosticDetails() {
+        client.get().uri(HEALTH_PATH).exchange().expectStatus().isOk()
+                .expectBody().json(HEALTH_RESPONSE, true);
+        client.post().uri(HEALTH_PATH).headers(h -> h.setBasicAuth(ANNA_USERNAME, ANNA_PASSWORD))
+                .exchange().expectStatus().isForbidden().expectBody().returnResult();
+        assertThat(BACKEND.requests).isEmpty();
+    }
+
+    @Test
     void catalogReadsArePublic() {
         for (String path : PUBLIC_CATALOG_PATHS) {
-            client.get().uri(path).exchange().expectStatus().isOk();
+            client.get().uri(path).exchange().expectStatus().isOk().expectBody().returnResult();
             assertThat(BACKEND.requests).contains(new Request(GET, path));
         }
     }
@@ -95,9 +107,9 @@ class GatewaySecurityConfigTest {
     @Test
     void ordersRequireCredentialsAndRejectWrongPassword() {
         client.post().uri(ORDERS_PATH).exchange().expectStatus().isUnauthorized()
-                .expectHeader().valueMatches(HttpHeaders.WWW_AUTHENTICATE, "Basic.*");
+                .expectHeader().valueMatches(HttpHeaders.WWW_AUTHENTICATE, "Basic.*").expectBody().returnResult();
         client.post().uri(ORDERS_PATH).headers(h -> h.setBasicAuth(IVAN_USERNAME, WRONG_PASSWORD))
-                .exchange().expectStatus().isUnauthorized();
+                .exchange().expectStatus().isUnauthorized().expectBody().returnResult();
         assertThat(BACKEND.requests).isEmpty();
     }
 
@@ -105,10 +117,10 @@ class GatewaySecurityConfigTest {
     void usersCanCreateAndReadIndividualOrders() {
         for (Credentials credentials : USER_CREDENTIALS) {
             client.post().uri(ORDERS_PATH).headers(h -> h.setBasicAuth(credentials.username(), credentials.password()))
-                    .exchange().expectStatus().isOk();
+                    .exchange().expectStatus().isOk().expectBody().returnResult();
             for (String path : USER_ORDER_PATHS) {
                 client.get().uri(path).headers(h -> h.setBasicAuth(credentials.username(), credentials.password()))
-                        .exchange().expectStatus().isOk();
+                        .exchange().expectStatus().isOk().expectBody().returnResult();
             }
         }
         assertThat(BACKEND.requests).hasSize(USER_CREDENTIALS.size() * (1 + USER_ORDER_PATHS.size()));
@@ -118,11 +130,11 @@ class GatewaySecurityConfigTest {
     void onlyAdminCanListOrdersIncludingTrailingSlash() {
         for (String path : ORDER_LIST_PATHS) {
             client.get().uri(path).headers(h -> h.setBasicAuth(IVAN_USERNAME, IVAN_PASSWORD))
-                    .exchange().expectStatus().isForbidden();
+                    .exchange().expectStatus().isForbidden().expectBody().returnResult();
         }
         assertThat(BACKEND.requests).isEmpty();
         client.get().uri(ORDERS_PATH).headers(h -> h.setBasicAuth(ANNA_USERNAME, ANNA_PASSWORD))
-                .exchange().expectStatus().isOk();
+                .exchange().expectStatus().isOk().expectBody().returnResult();
         assertThat(BACKEND.requests).containsExactly(new Request(GET, ORDERS_PATH));
     }
 
@@ -131,14 +143,14 @@ class GatewaySecurityConfigTest {
         for (HttpMethod method : WRITE_METHODS) {
             for (String path : CATALOG_WRITE_PATHS) {
                 client.method(method).uri(path).headers(h -> h.setBasicAuth(IVAN_USERNAME, IVAN_PASSWORD))
-                        .exchange().expectStatus().isForbidden();
+                        .exchange().expectStatus().isForbidden().expectBody().returnResult();
             }
         }
         assertThat(BACKEND.requests).isEmpty();
         for (HttpMethod method : WRITE_METHODS) {
             for (String path : CATALOG_WRITE_PATHS) {
                 client.method(method).uri(path).headers(h -> h.setBasicAuth(ANNA_USERNAME, ANNA_PASSWORD))
-                        .exchange().expectStatus().isOk();
+                        .exchange().expectStatus().isOk().expectBody().returnResult();
             }
         }
         assertThat(BACKEND.requests).hasSize(WRITE_METHODS.size() * CATALOG_WRITE_PATHS.size());
@@ -148,27 +160,27 @@ class GatewaySecurityConfigTest {
     void unknownRoutesAndMethodsAreDeniedEvenForAdmin() {
         for (String path : FORBIDDEN_PATHS) {
             client.get().uri(path).headers(h -> h.setBasicAuth(ANNA_USERNAME, ANNA_PASSWORD))
-                    .exchange().expectStatus().isForbidden();
+                    .exchange().expectStatus().isForbidden().expectBody().returnResult();
         }
         client.delete().uri(ORDER_PATH).headers(h -> h.setBasicAuth(ANNA_USERNAME, ANNA_PASSWORD))
-                .exchange().expectStatus().isForbidden();
+                .exchange().expectStatus().isForbidden().expectBody().returnResult();
         client.head().uri(PRODUCTS_PATH).headers(h -> h.setBasicAuth(ANNA_USERNAME, ANNA_PASSWORD))
-                .exchange().expectStatus().isForbidden();
+                .exchange().expectStatus().isForbidden().expectBody().returnResult();
         assertThat(BACKEND.requests).isEmpty();
     }
 
     @Test
     void credentialsAreNotSavedInSession() {
         client.post().uri(ORDERS_PATH).headers(h -> h.setBasicAuth(IVAN_USERNAME, IVAN_PASSWORD))
-                .exchange().expectStatus().isOk().expectHeader().doesNotExist(HttpHeaders.SET_COOKIE);
+                .exchange().expectStatus().isOk().expectHeader().doesNotExist(HttpHeaders.SET_COOKIE).expectBody().returnResult();
         client.post().uri(ORDERS_PATH).exchange().expectStatus().isUnauthorized()
-                .expectHeader().doesNotExist(HttpHeaders.SET_COOKIE);
+                .expectHeader().doesNotExist(HttpHeaders.SET_COOKIE).expectBody().returnResult();
         assertThat(BACKEND.requests).containsExactly(new Request(POST, ORDERS_PATH));
     }
 
     @Test
     void optionsAndCorsPreflightArePublic() {
-        client.options().uri(ORDERS_PATH).exchange().expectStatus().isOk();
+        client.options().uri(ORDERS_PATH).exchange().expectStatus().isOk().expectBody().returnResult();
         assertThat(BACKEND.requests).containsExactly(new Request(OPTIONS, ORDERS_PATH));
         BACKEND.reset();
         client.options().uri(ORDERS_PATH)
@@ -178,7 +190,7 @@ class GatewaySecurityConfigTest {
                 .exchange().expectStatus().isOk()
                 .expectHeader().valueEquals(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, UI_ORIGIN)
                 .expectHeader().valueEquals(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true")
-                .expectHeader().valueMatches(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, "(?i).*authorization.*");
+                .expectHeader().valueMatches(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, "(?i).*authorization.*").expectBody().returnResult();
         assertThat(BACKEND.requests).isEmpty();
     }
 
@@ -186,10 +198,10 @@ class GatewaySecurityConfigTest {
     void corsRejectsUnknownOriginAndAddsHeadersToSecurityErrors() {
         client.options().uri(ORDERS_PATH).header(HttpHeaders.ORIGIN, UNTRUSTED_ORIGIN)
                 .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, POST.name())
-                .exchange().expectStatus().isForbidden();
+                .exchange().expectStatus().isForbidden().expectBody().returnResult();
         client.post().uri(ORDERS_PATH).header(HttpHeaders.ORIGIN, UI_ORIGIN)
                 .exchange().expectStatus().isUnauthorized()
-                .expectHeader().valueEquals(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, UI_ORIGIN);
+                .expectHeader().valueEquals(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, UI_ORIGIN).expectBody().returnResult();
         assertThat(BACKEND.requests).isEmpty();
     }
 
@@ -197,7 +209,7 @@ class GatewaySecurityConfigTest {
     void documentationIsPublicAndStripsOnlyServicePrefix() {
         for (String service : SERVICE_NAMES) {
             for (String path : DOCUMENTATION_PATHS) {
-                client.get().uri(SERVICE_DOCUMENTATION_PATH.formatted(service, path)).exchange().expectStatus().isOk();
+                client.get().uri(SERVICE_DOCUMENTATION_PATH.formatted(service, path)).exchange().expectStatus().isOk().expectBody().returnResult();
                 assertThat(BACKEND.requests).contains(new Request(GET, path));
             }
         }

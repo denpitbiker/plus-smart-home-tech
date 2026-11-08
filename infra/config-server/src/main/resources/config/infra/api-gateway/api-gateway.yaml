@@ -4,6 +4,9 @@ server:
 spring:
   cloud:
     gateway:
+      httpclient:
+        connect-timeout: 1000
+        response-timeout: 10s
       discovery:
         locator:
           enabled: false
@@ -72,3 +75,12 @@ app:
       - username: anna
         password: anna
         roles: [USER, ADMIN]
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
