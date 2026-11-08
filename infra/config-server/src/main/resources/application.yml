@@ -12,6 +12,7 @@ spring:
         native:
           searchLocations:
             - classpath:config/telemetry/{application}
+            - classpath:config/infra/{application}
             - classpath:config-repo
             - classpath:config-repo/commerce
 
