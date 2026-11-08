@@ -2,6 +2,15 @@ server:
   port: 0
 
 spring:
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+      client:
+        config:
+          default:
+            connectTimeout: 1000
+            readTimeout: 2000
   datasource:
     url: ${ORDER_DB_URL:jdbc:postgresql://localhost:5432/order_db}
     username: ${ORDER_DB_USERNAME:dbuser}
@@ -13,3 +22,19 @@ spring:
   sql:
     init:
       mode: never
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 2
+        ignoreExceptions:
+          - feign.FeignException$NotFound
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 3s

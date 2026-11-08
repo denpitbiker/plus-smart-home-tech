@@ -23,10 +23,12 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class OrderService {
     private final OrderRepository repository;
+    private final OrderAvailabilityService availability;
 
     @Transactional
     public OrderDto create(CreateOrderRequest request) {
         log.info("Создание заказа: позиций={}", request.items().size());
+        availability.check(request.items());
         Order order = Order.builder()
                 .customerName(request.customerName())
                 .customerEmail(request.customerEmail())
