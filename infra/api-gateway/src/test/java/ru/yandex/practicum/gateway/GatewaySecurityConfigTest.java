@@ -26,7 +26,7 @@ import static ru.yandex.practicum.gateway.GatewayTestData.IVAN_USERNAME;
 import static ru.yandex.practicum.gateway.GatewayTestData.WRONG_PASSWORD;
 
 @SpringBootTest(webEnvironment = RANDOM_PORT, properties = {
-        "spring.config.location=classpath:gateway-config/application.yaml",
+        "spring.config.location=classpath:gateway-config/api-gateway.yaml",
         "spring.cloud.config.enabled=false",
         "eureka.client.enabled=false"
 })
