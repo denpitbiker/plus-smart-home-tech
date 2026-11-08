@@ -1,4 +1,5 @@
 server:
+  forward-headers-strategy: framework
   port: 0
 
 spring:
@@ -38,3 +39,12 @@ resilience4j:
     configs:
       default:
         timeoutDuration: 3s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never

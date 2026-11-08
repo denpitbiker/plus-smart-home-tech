@@ -1,0 +1,88 @@
+server:
+  port: 8080
+
+spring:
+  cloud:
+    gateway:
+      httpclient:
+        connect-timeout: 1000
+        response-timeout: 10s
+      discovery:
+        locator:
+          enabled: false
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins:
+              - http://localhost:8443
+              - http://127.0.0.1:8443
+            allowedMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+            allowedHeaders: [Authorization, Content-Type]
+            allowCredentials: true
+      routes:
+        - id: products
+          uri: lb://product-service
+          predicates:
+            - Path=/api/products,/api/products/**
+          filters:
+            - name: Retry
+              args:
+                retries: 3
+                statuses: NOT_FOUND
+                series: []
+                methods: GET
+                backoff:
+                  firstBackoff: 100ms
+                  maxBackoff: 500ms
+                  factor: 2
+        - id: categories
+          uri: lb://product-service
+          predicates:
+            - Path=/api/categories,/api/categories/**
+        - id: inventory
+          uri: lb://inventory-service
+          predicates:
+            - Path=/api/inventory,/api/inventory/**
+        - id: orders
+          uri: lb://order-service
+          predicates:
+            - Path=/api/orders,/api/orders/**
+        - id: product-service-docs
+          uri: lb://product-service
+          predicates:
+            - Path=/product-service/v3/api-docs,/product-service/v3/api-docs/**,/product-service/swagger-ui.html,/product-service/swagger-ui/**
+          filters:
+            - StripPrefix=1
+        - id: inventory-service-docs
+          uri: lb://inventory-service
+          predicates:
+            - Path=/inventory-service/v3/api-docs,/inventory-service/v3/api-docs/**,/inventory-service/swagger-ui.html,/inventory-service/swagger-ui/**
+          filters:
+            - StripPrefix=1
+        - id: order-service-docs
+          uri: lb://order-service
+          predicates:
+            - Path=/order-service/v3/api-docs,/order-service/v3/api-docs/**,/order-service/swagger-ui.html,/order-service/swagger-ui/**
+          filters:
+            - StripPrefix=1
+
+app:
+  security:
+    users:
+      - username: ivan
+        password: ${SECURITY_IVAN_PASSWORD:}
+        password-hash: $2a$10$0ch47L3.xBjv7PgiF.gN.eFJreuAV83I3Okmn7WvkWLJhB41N/dt.
+        roles: [USER]
+      - username: anna
+        password: ${SECURITY_ANNA_PASSWORD:}
+        password-hash: $2a$10$r21anZCOzOes82NPnZjc7.ZGQ7icqvhmQfGZ9bvDwU0p3LAh1ATYS
+        roles: [USER, ADMIN]
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
