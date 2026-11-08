@@ -26,7 +26,7 @@ on:
 
 jobs:
   build:
-    uses: yandex-praktikum/plus-smart-home-tech/.github/workflows/api-tests.yml@ci
+    uses: ./.github/workflows/smart-home-tests.yml
     with:
       verbose_mode: ${{ inputs.verbose_mode }}
       print_logs: ${{ inputs.print_logs }}
