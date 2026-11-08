@@ -70,10 +70,12 @@ app:
   security:
     users:
       - username: ivan
-        password: ${ secrets.SECURITY_IVAN_PASSWORD }
+        password: ${SECURITY_IVAN_PASSWORD:}
+        password-hash: $2a$10$0ch47L3.xBjv7PgiF.gN.eFJreuAV83I3Okmn7WvkWLJhB41N/dt.
         roles: [USER]
       - username: anna
-        password: ${ secrets.SECURITY_ANNA_PASSWORD }
+        password: ${SECURITY_ANNA_PASSWORD:}
+        password-hash: $2a$10$r21anZCOzOes82NPnZjc7.ZGQ7icqvhmQfGZ9bvDwU0p3LAh1ATYS
         roles: [USER, ADMIN]
 
 management:

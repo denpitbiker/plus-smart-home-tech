@@ -20,15 +20,12 @@ import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.OPTIONS;
 import static org.springframework.http.HttpMethod.POST;
 import static ru.yandex.practicum.gateway.GatewayTestData.ANNA_PASSWORD;
-import static ru.yandex.practicum.gateway.GatewayTestData.ANNA_PASSWORD_PROPERTY;
 import static ru.yandex.practicum.gateway.GatewayTestData.ANNA_USERNAME;
 import static ru.yandex.practicum.gateway.GatewayTestData.IVAN_PASSWORD;
-import static ru.yandex.practicum.gateway.GatewayTestData.IVAN_PASSWORD_PROPERTY;
 import static ru.yandex.practicum.gateway.GatewayTestData.IVAN_USERNAME;
 import static ru.yandex.practicum.gateway.GatewayTestData.WRONG_PASSWORD;
 
 @SpringBootTest(webEnvironment = RANDOM_PORT, properties = {
-        IVAN_PASSWORD_PROPERTY, ANNA_PASSWORD_PROPERTY,
         "spring.config.location=classpath:gateway-config/api-gateway.yaml",
         "spring.cloud.config.enabled=false",
         "eureka.client.enabled=false"

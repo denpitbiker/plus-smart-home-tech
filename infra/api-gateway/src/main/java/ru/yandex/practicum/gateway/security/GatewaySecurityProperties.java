@@ -1,13 +1,13 @@
 package ru.yandex.practicum.gateway.security;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 
-@ConfigurationProperties("app.security")
 public record GatewaySecurityProperties(List<Account> users) {
+    private static final Pattern BCRYPT_HASH = Pattern.compile("\\$2[aby]\\$\\d{2}\\$[./A-Za-z0-9]{53}");
+
     public GatewaySecurityProperties {
         if (users == null || users.isEmpty()) {
             throw new IllegalArgumentException("app.security.users must not be empty");
@@ -15,12 +15,12 @@ public record GatewaySecurityProperties(List<Account> users) {
         Set<String> usernames = new HashSet<>();
         for (Account user : users) {
             if (user == null || user.username() == null || user.username().isBlank()
-                    || user.password() == null || user.password().isBlank()
                     || user.roles() == null || user.roles().isEmpty()) {
                 throw new IllegalArgumentException("Security user requires username, password and USER/ADMIN roles");
             }
-            if (user.password().startsWith("${") && user.password().endsWith("}")) {
-                throw new IllegalArgumentException("Security password environment variable is not set");
+            boolean hasPassword = user.password() != null && !user.password().isBlank();
+            if (!hasPassword && (user.passwordHash() == null || !BCRYPT_HASH.matcher(user.passwordHash()).matches())) {
+                throw new IllegalArgumentException("Security user requires a password or a BCrypt password hash");
             }
             for (Role role : user.roles()) {
                 if (role == null) {
@@ -34,6 +34,6 @@ public record GatewaySecurityProperties(List<Account> users) {
         users = List.copyOf(users);
     }
 
-    public record Account(String username, String password, List<Role> roles) {
+    public record Account(String username, String password, String passwordHash, List<Role> roles) {
     }
 }

@@ -23,14 +23,11 @@ import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.OK;
 import static ru.yandex.practicum.gateway.GatewayTestData.ANNA_PASSWORD;
-import static ru.yandex.practicum.gateway.GatewayTestData.ANNA_PASSWORD_PROPERTY;
 import static ru.yandex.practicum.gateway.GatewayTestData.ANNA_USERNAME;
 import static ru.yandex.practicum.gateway.GatewayTestData.IVAN_PASSWORD;
-import static ru.yandex.practicum.gateway.GatewayTestData.IVAN_PASSWORD_PROPERTY;
 import static ru.yandex.practicum.gateway.GatewayTestData.IVAN_USERNAME;
 
 @SpringBootTest(webEnvironment = RANDOM_PORT, properties = {
-        IVAN_PASSWORD_PROPERTY, ANNA_PASSWORD_PROPERTY,
         "spring.config.location=classpath:gateway-config/api-gateway.yaml",
         "spring.cloud.config.enabled=false",
         "eureka.client.enabled=false"

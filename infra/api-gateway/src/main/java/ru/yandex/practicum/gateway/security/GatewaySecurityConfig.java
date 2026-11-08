@@ -1,6 +1,5 @@
 package ru.yandex.practicum.gateway.security;
 
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.gateway.config.GlobalCorsProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,7 +25,6 @@ import static ru.yandex.practicum.gateway.security.Role.USER;
 
 @Configuration
 @EnableWebFluxSecurity
-@EnableConfigurationProperties(GatewaySecurityProperties.class)
 public class GatewaySecurityConfig {
     private static final String HEALTH_PATH = "/actuator/health";
     private static final String ALL_PATHS = "/**";
@@ -87,8 +85,10 @@ public class GatewaySecurityConfig {
             for (int i = 0; i < roles.length; i++) {
                 roles[i] = account.roles().get(i).name();
             }
+            String password = account.password() != null && !account.password().isBlank()
+                    ? encoder.encode(account.password()) : account.passwordHash();
             UserDetails user = User.withUsername(account.username())
-                    .password(encoder.encode(account.password()))
+                    .password(password)
                     .roles(roles)
                     .build();
             users.add(user);
